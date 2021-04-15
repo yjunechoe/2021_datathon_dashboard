@@ -8,7 +8,7 @@ ui <- dashboardPage(
   # Sidebars ----
   ## left sidebar ====
   sidebar = dashboardSidebar(
-    sidebarMenu(
+    shinydashboard::sidebarMenu(
       menuItem("Home", tabName = "HomeTab", icon = icon("home")),
       menuItem("About", tabName = "AboutTab", icon = icon("info"))
     )
@@ -45,7 +45,8 @@ ui <- dashboardPage(
                   column(width = 10, plotOutput("Plot1Output")),
                   column(width = 2, 
                     sliderTextInput("user_letters", "y", LETTERS[1:10], "A", width = "90%"),
-                    sliderInput("user_number", "y", 0, nrow(mtcars), 10, width = "90%")
+                    sliderInput("user_number", "y", 0, nrow(mtcars), 10, width = "90%"),
+                    selectInput('judge', 'Judge', judge_options)
                   )
                 )
               ),

@@ -9,20 +9,40 @@ server <- function(input, output) {
   dat <- reactive({
     mtcars[1:input$user_number,]
   })
+  # Added some example jat data to test
+  data_judge_filter <- reactive({
+    merged %>% 
+      filter(judge==input$judge)
+  })
   
   # Scatter plot on panel 1
+  # output$Plot1Output <- renderPlot({
+  #   ggplot(dat()) +
+  #     geom_point(
+  #       aes(hp, mpg, fill = factor(cyl)),
+  #       pch = 21, stroke = .7, color = "white",
+  #       show.legend = FALSE
+  #     ) +
+  #     labs(
+  #       title = glue("The letter is {input$user_letters}"),
+  #       subtitle = glue("First {input$user_number} observations")
+  #     )
+  # }, res = 150)
+  
+  # Replaced with plot from judges data 
   output$Plot1Output <- renderPlot({
-    ggplot(dat()) +
-      geom_point(
-        aes(hp, mpg, fill = factor(cyl)),
-        pch = 21, stroke = .7, color = "white",
-        show.legend = FALSE
-      ) +
-      labs(
-        title = glue("The letter is {input$user_letters}"),
-        subtitle = glue("First {input$user_number} observations")
-      )
+    data_judge_filter() %>% 
+      dplyr::mutate(description_clean = forcats::fct_lump(description_clean, n= 5)) %>% 
+      ggplot(aes(x=description_clean)) + 
+      geom_bar(position = "dodge") + 
+      labs(title="Top offense descriptions",
+           subtitle = paste0("Selected judge: ", input$judge)) + 
+      scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) + 
+      theme(axis.text.x = element_text(size=5)) + 
+      NULL
+    
   }, res = 150)
+  
   
   # Density plot on panel 2
   output$Plot2Output <- renderPlot({
@@ -39,7 +59,7 @@ server <- function(input, output) {
   
   # Reactable on row 2
   output$TableOutput <- renderReactable({
-    reactable(dat())
+    reactable(data_judge_filter())
   })
   
   # Debugging button

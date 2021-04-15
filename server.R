@@ -1,8 +1,5 @@
 server <- function(input, output) {
   
-  # Source file that reads in data, misc. set ups, and other static things
-  source("source.R")
-  
   # The data
   # - Might wanna think about data structure for multiple plot dfs
   # - Packing dfs into a list in a single reactive(Val)?

@@ -34,21 +34,23 @@ theme_update(
 # the app to read from
 
 # This is offenses & dispositions data that has been cleaned up
-od_clean <- readRDS('~/Documents/od_clean.Rds')%>% 
+od_clean <- readRDS('./data/off_disp_clean.Rds')%>% 
   dplyr::rename(judge = disposing_authority__document_name) %>% 
-  dplyr::mutate(grade_desc = paste(grade,description_clean,sep="_")) %>% 
+  # dplyr::mutate(grade_desc = paste(grade,description_clean,sep="_")) %>% 
   dplyr::filter(!is.na(disposition)) # For my viz, removed lots of rows
 
 # This is defendant and docket info table merged with defendant IDs
-ddd <- readRDS('~/Documents/ddd.Rds')
+ddd <- readRDS('./data/defendant_docket.Rds')
 
 # Again, could do this outside app
 merged <- od_clean %>% 
   dplyr::left_join(ddd, by = "docket_id") %>% 
-  dplyr::mutate(year = lubridate::year(filing_date)) %>% 
+  dplyr::mutate(disposition_year = lubridate::year(disposition_date)) %>% 
   # We don't end up using most the data in the current app
-  dplyr::select(judge, year, docket_id, grade, description, description_clean,
-         gender, defendant_id, race, grade_desc, sentence_type)
+  dplyr::select(judge, disposition_year, docket_id, grade, description_clean,
+         gender, defendant_id, race, grade, sentence_type, min_period_days,
+         max_period_days)
 
 # Display options in order of most common
 judge_options <- na.omit(dplyr::pull(dplyr::count(od_clean, judge, sort=T), judge))
+description_options <- na.omit(dplyr::pull(dplyr::count(od_clean, description_clean, sort=T), description_clean))

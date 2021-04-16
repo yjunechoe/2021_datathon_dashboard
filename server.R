@@ -6,14 +6,23 @@ server <- function(input, output) {
   # The data
   # - Might wanna think about data structure for multiple plot dfs
   # - Packing dfs into a list in a single reactive(Val)?
-  dat <- reactive({
-    mtcars[1:input$user_number,]
-  })
+  # dat <- reactive({
+  #   mtcars[1:input$user_number,]
+  # })
   # Added some example jat data to test
+  # Plot1
   data_judge_filter <- reactive({
     merged %>% 
-      filter(judge==input$judge)
+      filter(judge==input$judge,
+             grade %in% input$grade,
+             disposition_year >= input$year[1] & disposition_year <= input$year[2])
   })
+  # For plot2
+  data_offense_filter <- reactive({
+    merged %>% 
+      filter(description_clean %in% input$description)
+  })
+  
   
   # Scatter plot on panel 1
   # output$Plot1Output <- renderPlot({
@@ -46,9 +55,9 @@ server <- function(input, output) {
   
   # Density plot on panel 2
   output$Plot2Output <- renderPlot({
-    ggplot(dat()) +
+    ggplot(data_offense_filter()) +
       geom_density(
-        aes(mpg, fill = factor(cyl)),
+        aes(max_period_days, fill = grade),
         alpha = .5, color = 'white',
         show.legend = FALSE
       ) +

@@ -40,21 +40,28 @@ ui <- dashboardPage(
             tabBox(id = "PlotsTabset", width = 12,
               
               ##### first plot panel ####
-              tabPanel(title = "plot1", value = "Plot1Tab",
+              tabPanel(title = "Common Offenses by Judge", value = "Plot1Tab",
                 fluidRow(
                   column(width = 10, plotOutput("Plot1Output")),
                   column(width = 2, 
-                    sliderTextInput("user_letters", "y", LETTERS[1:10], "A", width = "90%"),
-                    sliderInput("user_number", "y", 0, nrow(mtcars), 10, width = "90%"),
-                    selectInput('judge', 'Judge', judge_options)
+                    selectInput('judge', 'Judge', judge_options),
+                    selectInput('grade', "Grade", unique(od_clean$grade), 
+                                selected = unique(od_clean$grade),
+                                multiple = TRUE),
+                    sliderInput('year', 'Year Range (disposition date)', min=2010, max=2020,
+                                value=c(2010, 2020), step=1, round=T, sep="")
                   )
                 )
               ),
               
               ##### second plot panel ####
-              tabPanel(title = "plot2", value = "Plot2Tab",
+              tabPanel(title = "Max Sentence by Offense", value = "Plot2Tab",
                 fluidRow(
-                  column(width = 12, plotOutput("Plot2Output"))
+                  column(width = 10, plotOutput("Plot2Output")),
+                  column(width = 2,
+                         selectInput("description", "Offense Description", description_options, 
+                                     selected = description_options[1:3],
+                                     multiple = FALSE))
                 )
               )
             )

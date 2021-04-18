@@ -1,13 +1,30 @@
 # Load pkgs ----
 
-xfun::pkg_attach(
-    "shiny", "shinyWidgets", "shinydashboard", "shinydashboardPlus",
-    "ggplot2", "ragg", "thematic", "colorspace",
-    "reactable", "reactablefmtr",
-    "data.table", "rlang", "glue",
-    "dplyr","forcats","lubridate",
-    message = FALSE
-)
+# xfun::pkg_attach(
+#     "shiny", "shinyWidgets", "shinydashboard", "shinydashboardPlus",
+#     "ggplot2", "ragg", "thematic", "colorspace",
+#     "reactable", "reactablefmtr",
+#     "data.table", "rlang", "glue",
+#     "dplyr","forcats","lubridate",
+#     message = FALSE
+# )
+# Above package loading is not compatible with shinyapps/.io dependency handling (packrat)
+library(shiny)
+library(shinyWidgets)
+library(shinydashboard)
+library(shinydashboardPlus)
+library(ggplot2)
+library(ragg)
+library(thematic)
+library(colorspace)
+library(reactable)
+library(reactablefmtr)
+library(data.table)
+library(rlang)
+library(glue)
+library(dplyr)
+library(forcats)
+library(lubridate)
 
 # Plot themes ----
 

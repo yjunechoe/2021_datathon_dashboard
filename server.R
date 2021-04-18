@@ -1,7 +1,9 @@
+
+# Source file that reads in data, misc. set ups, and other static things
+source("source.R")
+
+
 server <- function(input, output) {
-  
-  # Source file that reads in data, misc. set ups, and other static things
-  source("source.R")
   
   # The data
   # - Might wanna think about data structure for multiple plot dfs
@@ -14,13 +16,13 @@ server <- function(input, output) {
   data_judge_filter <- reactive({
     merged %>% 
       filter(judge==input$judge,
-             grade %in% input$grade,
              disposition_year >= input$year[1] & disposition_year <= input$year[2])
   })
   # For plot2
   data_offense_filter <- reactive({
     merged %>% 
-      filter(description_clean %in% input$description)
+      filter(description_clean %in% input$description,
+             grade %in% input$grade)
   })
   
   
@@ -44,8 +46,9 @@ server <- function(input, output) {
       dplyr::mutate(description_clean = forcats::fct_lump(description_clean, n= 5)) %>% 
       ggplot(aes(x=description_clean)) + 
       geom_bar(position = "dodge") + 
-      labs(title="Top offense descriptions",
-           subtitle = paste0("Selected judge: ", input$judge)) + 
+      labs(title="Most common offenses",
+           subtitle = paste0("Selected judge: ", input$judge),
+           x = "Offense") + 
       scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) + 
       theme(axis.text.x = element_text(size=5)) + 
       NULL
@@ -53,22 +56,38 @@ server <- function(input, output) {
   }, res = 150)
   
   
-  # Density plot on panel 2
+  # Sentence plot on panel 2
   output$Plot2Output <- renderPlot({
-    ggplot(data_offense_filter()) +
-      geom_density(
-        aes(max_period_days, fill = grade),
-        alpha = .5, color = 'white',
+    ggplot(data_offense_filter(), 
+           aes(x = sentence_type,
+               y = max_period_days 
+               )) +
+      geom_boxplot(
+        alpha = .5,
         show.legend = FALSE
       ) +
+      geom_jitter(
+        alpha = .5,
+        height = 0,
+        width = 0.2,
+        show.legend = FALSE
+      ) + 
+      scale_x_discrete(drop=TRUE) + 
       labs(
-        title = "This is a plot title"
+        y = "Maximum Sentence (days)",
+        x = "Sentence Type",
+        title = "Maximum Sentence"
       )
   }, res = 150)
   
-  # Reactable on row 2
-  output$TableOutput <- renderReactable({
+  # Reactable for tab 1, on row 2
+  output$TableOutput1 <- renderReactable({
     reactable(data_judge_filter())
+  })
+  
+  # Reactable for tab 2, on row 2
+  output$TableOutput2 <- renderReactable({
+    reactable(data_offense_filter())
   })
   
   # Debugging button

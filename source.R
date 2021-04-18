@@ -36,8 +36,8 @@ theme_update(
 # This is offenses & dispositions data that has been cleaned up
 od_clean <- readRDS('./data/off_disp_clean.Rds')%>% 
   dplyr::rename(judge = disposing_authority__document_name) %>% 
-  # dplyr::mutate(grade_desc = paste(grade,description_clean,sep="_")) %>% 
-  dplyr::filter(!is.na(disposition)) # For my viz, removed lots of rows
+  # Depending on what you want, remove rows/offenses with NA disposition
+  dplyr::filter(!is.na(disposition)) # This will remove many rows
 
 # This is defendant and docket info table merged with defendant IDs
 ddd <- readRDS('./data/defendant_docket.Rds')

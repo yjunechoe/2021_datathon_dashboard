@@ -68,6 +68,10 @@ merged <- od_clean %>%
          gender, defendant_id, race, grade, sentence_type, min_period_days,
          max_period_days)
 
+# Load Alison data
+merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds')
+
+options <- c("Judge","min_grade","max_grade","statute_description","disposition","disposition_method","sentence_type","Title_Description","Chapter_Description","gender","race","in_select_judges")
 # Display options in order of most common
 judge_options <- na.omit(dplyr::pull(dplyr::count(od_clean, judge, sort=T), judge))
 description_options <- na.omit(dplyr::pull(dplyr::count(od_clean, description_clean, sort=T), description_clean))

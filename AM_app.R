@@ -3,6 +3,11 @@
 # Source file that reads in data, misc. set ups, and other static things
 source("source.R")
 
+merged.narrow <- readRDS("Docket_Offenses_Merged_Narrowed.Rds")
+
+options <- c("Judge","min_grade","max_grade","statute_description","disposition","disposition_method","sentence_type","Title_Description","Chapter_Description","gender","race","in_select_judges")
+
+
 ui <- dashboardPage(
   
   # Top level ----

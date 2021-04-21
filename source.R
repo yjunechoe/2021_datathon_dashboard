@@ -45,33 +45,43 @@ theme_update(
 
 # Read in data ----
 
-# I performed most data cleaning separately and saved as Rds 
-# I could do a better job here and also do this separately
-# I saved these locally, but would want to save in a location for 
-# the app to read from
+# We performed most data cleaning separately and saved as Rds 
 
+# Alice data note:
 # This is offenses & dispositions data that has been cleaned up
-od_clean <- readRDS('./data/off_disp_clean.Rds')%>% 
-  dplyr::rename(judge = disposing_authority__document_name) %>% 
-  # Depending on what you want, remove rows/offenses with NA disposition
-  dplyr::filter(!is.na(disposition)) # This will remove many rows
+# And filtered for offenses with dispositions!!
+# Then merged with docket/defendant data
+merged <- readRDS('./data/merged_filt_offenses_shiny.Rds')
 
-# This is defendant and docket info table merged with defendant IDs
-ddd <- readRDS('./data/defendant_docket.Rds')
-
-# Again, could do this outside app
-merged <- od_clean %>% 
-  dplyr::left_join(ddd, by = "docket_id") %>% 
-  dplyr::mutate(disposition_year = lubridate::year(disposition_date)) %>% 
-  # We don't end up using most the data in the current app
-  dplyr::select(judge, disposition_year, docket_id, grade, description_clean,
-         gender, defendant_id, race, grade, sentence_type, min_period_days,
-         max_period_days)
 
 # Load Alison data
 merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds')
 
-options <- c("Judge","min_grade","max_grade","statute_description","disposition","disposition_method","sentence_type","Title_Description","Chapter_Description","gender","race","in_select_judges")
+# Load Roy data
+bail_net_change_by_judge <- readRDS('./data/bailnetchangebyjudge.rds')
+
+# Create some other variables that the app uses: ----
+
+options <-
+  c(
+    "Judge",
+    "min_grade",
+    "max_grade",
+    "statute_description",
+    "disposition",
+    "disposition_method",
+    "sentence_type",
+    "Title_Description",
+    "Chapter_Description",
+    "gender",
+    "race",
+    "in_select_judges"
+  )
 # Display options in order of most common
-judge_options <- na.omit(dplyr::pull(dplyr::count(od_clean, judge, sort=T), judge))
-description_options <- na.omit(dplyr::pull(dplyr::count(od_clean, description_clean, sort=T), description_clean))
+judge_options <-
+  na.omit(dplyr::pull(dplyr::count(merged, judge, sort = T), judge))
+description_options <-
+  na.omit(dplyr::pull(
+    dplyr::count(merged, description_clean, sort = T),
+    description_clean
+  ))

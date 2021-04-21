@@ -94,17 +94,23 @@ ui <- dashboardPage(
                   tabBox(id = "PlotsTabset", width = 12,
                          
                          ##### bail plot panel 1 ####
-                         tabPanel(title = "Add Here", value = "BailPlot1Tab",
+                         tabPanel(title = "Cumulative total of bail changes", value = "BailPlot1Tab",
                          fluidRow(
-                           column(width = 10),
+                           column(width = 10, plotOutput("BailPlot1Output")),
                            column(width = 2)
                          )
                         ),
                         ##### bail plot panel 2 ####
-                        tabPanel(title = "Add Here", value = "BailPlot2Tab",
+                        tabPanel(title = "Total # of Bail Amount Changes", value = "BailPlot2Tab",
                        fluidRow(
-                         column(width = 10),
-                         column(width = 2)
+                         column(width = 10, plotOutput("BailPlot2Output")),
+                         column(width = 2,
+                                pickerInput('bail_judges', 
+                                            'Judges of Interest', 
+                                            choices = unique(bail_net_change_by_judge$judge),
+                                            selected = c("Judge Ann Butchart", "Judge Abbe Fletman"), 
+                                            options = list(`actions-box` = TRUE), 
+                                            multiple = TRUE))
                        )
                       )
                   )
@@ -172,8 +178,8 @@ ui <- dashboardPage(
                                                        description_options, 
                                                        selected = description_options[1:3],
                                                        multiple = FALSE),
-                                           selectInput('grade', "Grade", unique(od_clean$grade), 
-                                                       selected = unique(od_clean$grade),
+                                           selectInput('grade', "Grade", unique(merged$grade_backfilled), 
+                                                       selected = unique(merged$grade_backfilled),
                                                        multiple = TRUE))
                                   ),
                                   ### bottom row tab 2 ####
@@ -242,10 +248,14 @@ server <- function(input, output) {
       filter(grepl(paste(input$disposition_methods, collapse = "|"), disposition_method)) %>%
       filter(grepl(paste(input$races, collapse = "|"), race))
   })
-  
+  # Roy bail data filtered
+  bail_filtered <- reactive({
+    bail_net_change_by_judge %>% 
+      filter(judge %in% input$bail_judges) 
+  })
   
   #
-  # PLOTS -----
+  # Plots -----
   #
   # Judge plot 1
   output$JudgePlot1Output <- renderPlot({
@@ -265,7 +275,8 @@ server <- function(input, output) {
   # Sentence plot on panel 2
   output$SenPlot2Output <- renderPlot({
     data_offense_filter() %>% 
-      dplyr::filter(sentence_type %in% c("Confinement","Probation")) %>% 
+      dplyr::filter(sentence_type %in% c("Confinement","Probation"),
+                    !is.na(max_period_days)) %>% 
       ggplot(
         aes(x = sentence_type,
             y = max_period_days 
@@ -308,9 +319,45 @@ server <- function(input, output) {
       facet_wrap(.~to.facet)
   }, res = 150)
   
+  # Bail plot 1: 
+  output$BailPlot1Output <- renderPlot({
+  bail_net_change_by_judge %>%
+    ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
+    geom_bar(stat='identity', width=.5) +
+    labs(fill = "Total # of Bail Amount Changes",
+         caption = "This plot shows the cumulative total of bail increases and decreases by a given judge.
+          Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
+          than they decrease them have a positive value, while the opposite is true for judges
+          that decrease bail amounts more often. The bar fill indicates the total number of 
+          bail changes (both increases and decreases") +
+    xlab("Judges") +
+    ylab("Cumulative Total of Bail Increases and Decreases") +
+    theme(
+      plot.caption = element_text(hjust = 0)
+    )}, res = 150)
   
   
-  # Debugging button
+  # Bail Plot 2:
+  output$BailPlot2Output <- renderPlot({
+    bail_filtered() %>%
+      ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
+      geom_bar(stat='identity', width=.5) +
+      labs(fill = "Total # of Bail Amount Changes",
+           caption = "This plot shows the cumulative total of bail increases and decreases by a given judge.
+          Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
+          than they decrease them have a positive value, while the opposite is true for judges
+          that decrease bail amounts more often. The bar fill indicates the total number of 
+          bail changes (both increases and decreases)") +
+      xlab("Judges") +
+      ylab("Cumulative Total of Bail Increases and Decreases") +
+      theme(
+        plot.caption = element_text(hjust = 0)
+      )
+      }, res = 150)
+  
+
+  
+  # Debugging button - shinyapps.io asked me to disable this for deployment
   # observeEvent(input$Debugger, {browser()})
   
   

@@ -140,32 +140,40 @@ ui <- dashboardPage(
                        value = "SenPlot1Tab",
                                   fluidRow(
                                     column(width = 2,style = "height:800px",
-                                           pickerInput('judges_of_interest', 'Judges of Interest', choices = unique(merged.narrow$Judge),selected = unique(merged.narrow$Judge), options = list(`actions-box` = TRUE), multiple = TRUE),
-                                           textInput("crime_descriptions","Crime Description",value = ""),
-                                           textInput("title_descriptions","Title Description",value = ""),
-                                           textInput("disposition_methods","Disposition Method",value = ""),
-                                           pickerInput("races","Race", choices = unique(merged.narrow$race), multiple = TRUE, selected = unique(merged.narrow$race),options = list(`actions-box` = TRUE)),
-                                           numericInput("nfactors","Number Categories",value = 6, min = 1, max = 10),
-                                           selectInput("x.axis","On X Axis",choices = options, selected = "Chapter_Description"),
-                                           selectInput("facet","Separate By", choices = options, selected = "Judge")
+                                           pickerInput('judges_of_interest', 
+                                                       'Judges of Interest', 
+                                                       choices = unique(merged.narrow$Judge),
+                                                       selected = unique(merged.narrow$Judge), 
+                                                       options = list(`actions-box` = TRUE), 
+                                                       multiple = TRUE),
+                                           textInput("crime_descriptions","Crime Description",
+                                                     value = ""),
+                                           textInput("title_descriptions","Title Description",
+                                                     value = ""),
+                                           textInput("disposition_methods","Disposition Method",
+                                                     value = ""),
+                                           pickerInput("races","Race", 
+                                                       choices = unique(merged.narrow$race), 
+                                                       multiple = TRUE, 
+                                                       selected = unique(merged.narrow$race),
+                                                       options = list(`actions-box` = TRUE)),
+                                           numericInput("nfactors","Number Categories",
+                                                        value = 6, min = 1, max = 10),
+                                           selectInput("x.axis","On X Axis",
+                                                       choices = options, 
+                                                       selected = "Chapter_Description"),
+                                           selectInput("facet","Separate By", 
+                                                       choices = options, selected = "Judge")
                                     ),
                                     column(width = 10, style = "height:800px",
-                                           align = "left",plotOutput("PlotSenOutput", height = "800px"))
+                                           align = "left",
+                                           plotOutput("PlotSenOutput", height = "800px"))
                                   ),
                        ### bottom row tab 1 ####
                        fluidRow(
                          column(width = 12, reactableOutput("TableOutputSentences1"))
                        )
-                                  #   fluidRow(pickerInput('judges_of_interest', 'Judges of Interest', choices = unique(merged.narrow$Judge),options = list(`actions-box` = TRUE), multiple = TRUE),
-                                  #            textInput("crime_descriptions","Crime Description",value = ""),
-                                  #            textInput("title_descriptions","Title Description",value = ""),
-                                  #                     textInput("disposition_methods","Disposition Method",value = ""),
-                                  #                     pickerInput("races","Race", choices = unique(merged.narrow$race), multiple = TRUE, selected = unique(merged.narrow$race),options = list(`actions-box` = TRUE)),
-                                  #                     numericInput("nfactors","Number Categories",value = 6, min = 1, max = 10),
-                                  #                     selectInput("x.axis","On X Axis",choices = options, selected = "Chapter_Description"),
-                                  #                     selectInput("facet","Separate By", choices = options, selected = "Judge")
-                                  #              ),
-                                  # fluidRow(plotOutput("PlotSenOutput"))
+                                  
                          ),
 
                          ##### Sentence Second plot panel ####
@@ -240,14 +248,23 @@ server <- function(input, output) {
   filtered.data <- reactive({
     merged.narrow %>%
       #filter based on selection
-      dplyr::mutate(Confinement_Time = max_period_days_Confinement/365) %>%
-      dplyr::mutate(in_select_judges = ifelse(grepl(paste(input$judges_of_interest, collapse = "|"),Judge), 
+      dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
                                               Judge, "Other Judges")) %>%
-      filter(grepl(paste(input$crime_descriptions, collapse = "|"), Chapter_Description)) %>%
-      filter(grepl(paste(input$title_descriptions, collapse = "|"), Title_Description)) %>%
-      filter(grepl(paste(input$disposition_methods, collapse = "|"), disposition_method)) %>%
-      filter(grepl(paste(input$races, collapse = "|"), race))
+      filter(race %in% input$races,
+             stringr::str_detect(tolower(statute_description),
+                                       paste(tolower(input$crime_descriptions), collapse = "|") ),
+             stringr::str_detect(tolower(Title_Description),
+                                paste(tolower(input$title_descriptions), collapse = "|") ),
+             stringr::str_detect(tolower(disposition_method),
+                                paste(tolower(input$disposition_methods), collapse = "|") ),
+             
+             )
+      # filter(grepl(paste(input$crime_descriptions, collapse = "|"), statute_description)) %>%
+      # filter(grepl(paste(input$title_descriptions, collapse = "|"), Title_Description)) %>%
+      # filter(grepl(paste(input$disposition_methods, collapse = "|"), disposition_method)) %>%
+
   })
+  
   # Roy bail data filtered
   bail_filtered <- reactive({
     bail_net_change_by_judge %>% 
@@ -382,7 +399,7 @@ server <- function(input, output) {
   # Reactable for Bail tab 
   # UPDATE THIS WITH THE REAL BAIL DATA
   output$TableOutputBail1 <- renderReactable({
-    reactable(data_offense_filter())
+    reactable(bail_filtered())
   })
   
 }

@@ -191,7 +191,7 @@ ui <- dashboardPage(
                          ),
 
                          ##### Sentence Second plot panel ####
-                         tabPanel(title = "Sentence type by judge and offense", value = "SenPlot2Tab",
+                         tabPanel(title = "Sentence by judge and offense", value = "SenPlot2Tab",
                                   fluidRow(
                                     column(width = 10, plotOutput("SenPlot2Output")),
                                     column(width = 2,
@@ -208,6 +208,21 @@ ui <- dashboardPage(
                                                        multiple = TRUE),
                                            selectInput('judge_sentence', 'Judge', judge_options))
                                   ),
+                                  ### middle row with a legend ###
+                                  fluidRow(
+                                    column(width = 12, 
+      "The above plot compares sentencing behavior for a selected judge compared to all other judges. The y-axis is the percent of occurences for a given sentence type across all observations of that offense. The numbers that appear above the bars are the total number of occurences for that sentence type. Keep in mind that the data used here is only for offenses that had an associated sentence and not the occurences of these offenses on dockets without sentences (while other offenses on the same docket had sentences). This visualization does not consider other factors about the docket such as other crimes, the defendants record, or the disposition method.")
+                                  ),
+      hr(),
+                                  ### another row with another plot ####
+                                  fluidRow(
+                                      column(width = 10, plotOutput("SenPlot2bOutput"))
+                                  ),
+                                  fluidRow(
+                                       column(width = 12, 
+               "The above plot compares sentencing behavior for a selected judge compared to all other judges. The median values are shown.")
+                                  ),
+      hr(),
                                   ### bottom row tab 2 ####
                                   fluidRow(
                                     column(width = 12, reactableOutput("TableOutputSentences2"))
@@ -279,6 +294,33 @@ server <- function(input, output) {
       filter(description_clean %in% input$description,
              grade %in% input$grade)
   })
+  
+  sentence_length_summary <- reactive({
+    if(input$facet_grade){
+    merged %>% 
+      filter(description_clean %in% input$description,
+             grade %in% input$grade) %>% 
+      mutate(select_judge = ifelse(judge==input$judge_sentence,input$judge_sentence,"Other" )) %>% 
+      group_by(grade, description_clean, select_judge, sentence_type) %>% 
+    summarise(median_min_days = median(min_period_days, na.rm = T),
+              mean_min_days = mean(min_period_days, na.rm = T),
+              median_max_days = median(max_period_days, na.rm = T),
+              mean_max_days = mean(max_period_days, na.rm = T),
+              .groups = "drop") 
+    } else {
+      merged %>% 
+        filter(description_clean %in% input$description,
+               grade %in% input$grade) %>% 
+        mutate(select_judge = ifelse(judge==input$judge_sentence,input$judge_sentence,"Other" )) %>% 
+        group_by(description_clean, select_judge, sentence_type) %>% 
+        summarise(median_min_days = median(min_period_days, na.rm = T),
+                  mean_min_days = mean(min_period_days, na.rm = T),
+                  median_max_days = median(max_period_days, na.rm = T),
+                  mean_max_days = mean(max_period_days, na.rm = T),
+                  .groups = "drop") 
+    }
+  })
+  
   sentence_type_summary <- reactive({
     if (input$facet_grade){
       merged %>% 
@@ -320,9 +362,6 @@ server <- function(input, output) {
                                 paste(tolower(input$disposition_methods), collapse = "|") )
              
              )
-      # filter(grepl(paste(input$crime_descriptions, collapse = "|"), statute_description)) %>%
-      # filter(grepl(paste(input$title_descriptions, collapse = "|"), Title_Description)) %>%
-      # filter(grepl(paste(input$disposition_methods, collapse = "|"), disposition_method)) %>%
 
   })
   
@@ -436,7 +475,6 @@ server <- function(input, output) {
         facet_grid(.~description_clean, scales = "free_x",space="free_x",
                    labeller = labeller(description_clean = label_wrap_gen(25)))+
         labs(title="Sentence type by judge and offense",
-             subtitle = "Selected judge: Rayford A. Means",
              x = "", y = "Percentage",
              caption = "Only considering offenses with a disposition") + 
         scale_fill_manual(values = c("lightgray","goldenrod3")) + 
@@ -445,6 +483,57 @@ server <- function(input, output) {
     }
     
   })
+  
+  output$SenPlot2bOutput <- renderPlot({
+    if (input$facet_grade){
+    sentence_length_summary() %>% 
+      filter(sentence_type %in% c("Confinement","Probation")) %>% 
+      tidyr::pivot_longer(ends_with("days")) %>% 
+      filter(name %in% c("median_min_days","median_max_days")) %>% 
+      mutate(group = paste(select_judge,sentence_type)) %>% 
+      ggplot( aes(x=sentence_type, 
+                  y = value,
+                  group = group,
+                  color=select_judge)) + 
+      geom_point(position = position_dodge(width=0.4), size = 3) + 
+      geom_line(position = position_dodge(width=0.4), 
+                size=1.5, alpha=0.7) +
+      facet_grid(.~grade+description_clean, scales = "free_x",space="free_x",
+                 drop=T,
+                 labeller = labeller(grade_desc = label_wrap_gen(25)))+
+      labs(title="Sentence length by judge and offense",
+           x = "", y = "Median Sentence min/max (days)",
+           caption = "Only considering offenses with a disposition") + 
+      scale_color_manual(values = c("lightgray","goldenrod3")) + 
+      coord_flip() + 
+      theme_minimal() + 
+      theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+    } else{
+      sentence_length_summary() %>% 
+        filter(sentence_type %in% c("Confinement","Probation")) %>% 
+        tidyr::pivot_longer(ends_with("days")) %>% 
+        filter(name %in% c("median_min_days","median_max_days")) %>% 
+        mutate(group = paste(select_judge,sentence_type)) %>% 
+        ggplot( aes(x=sentence_type, 
+                    y = value,
+                    group = group,
+                    color=select_judge)) + 
+        geom_point(position = position_dodge(width=0.4), size = 3) + 
+        geom_line(position = position_dodge(width=0.4), 
+                  size=1.5, alpha=0.7) +
+        facet_grid(.~description_clean, scales = "free_x",space="free_x",
+                   drop=T,
+                   labeller = labeller(grade_desc = label_wrap_gen(25)))+
+        labs(title="Sentence length by judge and offense",
+             x = "", y = "Median Sentence min/max (days)",
+             caption = "Only considering offenses with a disposition") + 
+        scale_color_manual(values = c("lightgray","goldenrod3")) + 
+        coord_flip() + 
+        theme_minimal() + 
+        theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+    }
+  })
+  
   
   # Sentence plot by Race tab 3
   output$SenPlot3Output <- renderPlot({
@@ -516,7 +605,6 @@ server <- function(input, output) {
   })
   
   # Reactable for Bail tab 
-  # UPDATE THIS WITH THE REAL BAIL DATA
   output$TableOutputBail1 <- renderReactable({
     reactable(bail_filtered())
   })

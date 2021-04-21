@@ -64,6 +64,8 @@ merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds') %>%
 # Load Roy data
 bail_net_change_by_judge <- readRDS('./data/bailnetchangebyjudge.rds')
 
+# Load Kulbir data
+dispo_det <- readRDS('./data/kk_dispo_det.Rds')
 # Create some other variables that the app uses: ----
 
 options <-

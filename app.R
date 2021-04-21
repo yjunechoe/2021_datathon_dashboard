@@ -96,9 +96,16 @@ ui <- dashboardPage(
                          ##### bail plot panel 1 ####
                          tabPanel(title = "Cumulative total of bail changes", value = "BailPlot1Tab",
                          fluidRow(
-                           column(width = 10, plotOutput("BailPlot1Output")),
-                           column(width = 2)
-                         )
+                           column(width = 11, plotOutput("BailPlot1Output"))
+                         ),
+                         fluidRow(
+                           column(width = 12,
+                                  "This plot shows the cumulative total of bail increases and decreases by a given judge.
+          Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
+          than they decrease them have a positive value, while the opposite is true for judges
+          that decrease bail amounts more often. The bar fill indicates the total number of 
+          bail changes (both increases and decreases"
+                           ))
                         ),
                         ##### bail plot panel 2 ####
                         tabPanel(title = "Total # of Bail Amount Changes", value = "BailPlot2Tab",
@@ -111,17 +118,24 @@ ui <- dashboardPage(
                                             selected = c("Judge Ann Butchart", "Judge Abbe Fletman"), 
                                             options = list(`actions-box` = TRUE), 
                                             multiple = TRUE))
+                       ),
+                       fluidRow(
+                         column(width = 12,
+                                "This plot shows the cumulative total of bail increases and decreases by a given judge.
+          Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
+          than they decrease them have a positive value, while the opposite is true for judges
+          that decrease bail amounts more often. The bar fill indicates the total number of 
+          bail changes (both increases and decreases"
+                         )),
+                       ### bottom row ####
+                       fluidRow(
+                         column(width = 12, 
+                                reactableOutput("TableOutputBail1")
+                         )
                        )
                       )
                   )
-              ),
-              
-                ### bottom row ####
-                fluidRow(
-                  column(width = 12, 
-                         reactableOutput("TableOutputBail1")
-                         )
-                )
+              )
               )
       ),
       
@@ -177,7 +191,7 @@ ui <- dashboardPage(
                          ),
 
                          ##### Sentence Second plot panel ####
-                         tabPanel(title = "Max Sentence by Offense", value = "SenPlot2Tab",
+                         tabPanel(title = "Sentence type by judge and offense", value = "SenPlot2Tab",
                                   fluidRow(
                                     column(width = 10, plotOutput("SenPlot2Output")),
                                     column(width = 2,
@@ -186,19 +200,40 @@ ui <- dashboardPage(
                                                        description_options, 
                                                        selected = description_options[1:3],
                                                        multiple = FALSE),
-                                           selectInput('grade', "Grade", unique(merged$grade_backfilled), 
+                                           checkboxInput("facet_grade", "Separate by Grade",FALSE),
+                                           selectInput('grade', 
+                                                       "Grade", 
+                                                       unique(merged$grade_backfilled), 
                                                        selected = unique(merged$grade_backfilled),
-                                                       multiple = TRUE))
+                                                       multiple = TRUE),
+                                           selectInput('judge_sentence', 'Judge', judge_options))
                                   ),
                                   ### bottom row tab 2 ####
                                   fluidRow(
                                     column(width = 12, reactableOutput("TableOutputSentences2"))
                                   )
-                         )
+                         ),
+              ##### Sentence 3 plot panel ####
+              tabPanel(title = "Sentence type by race", value = "SenPlot3Tab",
+                       fluidRow(
+                         column(width = 2,
+                                pickerInput("race_sentence","Race", 
+                                            choices = unique(dispo_det$race), 
+                                            multiple = TRUE, 
+                                            selected = c("White","Black"),
+                                            options = list(`actions-box` = TRUE))
+                         ),
+                         column(width = 10, plotOutput("SenPlot3Output")),
+                         
+                       ### bottom row tab 2 ####
+                       fluidRow(
+                         column(width = 12)
+                       )
+              )
                   )
                 )
               )
-      ),
+      )),
       
       
       # About tab ----
@@ -244,6 +279,32 @@ server <- function(input, output) {
       filter(description_clean %in% input$description,
              grade %in% input$grade)
   })
+  sentence_type_summary <- reactive({
+    if (input$facet_grade){
+      merged %>% 
+        filter(description_clean %in% input$description,
+               grade %in% input$grade) %>% 
+        mutate(select_judge = ifelse(judge==input$judge_sentence,input$judge_sentence,"Other" )) %>% 
+        group_by(grade, description_clean, select_judge) %>% 
+        count(sentence_type) %>% 
+        mutate(prop_sentence_type = n/sum(n)) %>% 
+        ungroup() %>% 
+        mutate(axis_label = paste0(sentence_type, " (n=", as.character(n), ")"))
+    } else{
+      merged %>% 
+        filter(description_clean %in% input$description,
+               grade %in% input$grade) %>% 
+        mutate(select_judge = ifelse(judge==input$judge_sentence,input$judge_sentence,"Other" )) %>% 
+        group_by(description_clean, select_judge) %>% 
+        count(sentence_type) %>% 
+        mutate(prop_sentence_type = n/sum(n)) %>% 
+        ungroup() %>% 
+        mutate(axis_label = paste0(sentence_type, " (n=", as.character(n), ")"))
+    }
+    
+  })
+  
+  
   # Sentence plot 1 data
   filtered.data <- reactive({
     merged.narrow %>%
@@ -256,7 +317,7 @@ server <- function(input, output) {
              stringr::str_detect(tolower(Title_Description),
                                 paste(tolower(input$title_descriptions), collapse = "|") ),
              stringr::str_detect(tolower(disposition_method),
-                                paste(tolower(input$disposition_methods), collapse = "|") ),
+                                paste(tolower(input$disposition_methods), collapse = "|") )
              
              )
       # filter(grepl(paste(input$crime_descriptions, collapse = "|"), statute_description)) %>%
@@ -269,6 +330,11 @@ server <- function(input, output) {
   bail_filtered <- reactive({
     bail_net_change_by_judge %>% 
       filter(judge %in% input$bail_judges) 
+  })
+  
+  # Kulbir data filtered sentences #3
+  dispo_race<- reactive({
+    dispo_det %>% filter(race %in% input$race_sentence) 
   })
   
   #
@@ -289,31 +355,7 @@ server <- function(input, output) {
     
   }, res = 150)
   
-  # Sentence plot on panel 2
-  output$SenPlot2Output <- renderPlot({
-    data_offense_filter() %>% 
-      dplyr::filter(sentence_type %in% c("Confinement","Probation"),
-                    !is.na(max_period_days)) %>% 
-      ggplot(
-        aes(x = sentence_type,
-            y = max_period_days 
-        )) +
-      geom_boxplot(
-        alpha = .5,
-        show.legend = FALSE
-      ) +
-      geom_jitter(
-        alpha = .5,
-        height = 0,
-        width = 0.2,
-        show.legend = FALSE
-      ) + 
-      labs(
-        y = "Maximum Sentence (days)",
-        x = "Sentence Type",
-        title = "Maximum Sentence"
-      )
-  }, res = 150)
+  
 
   # Sentences Plot 1
   output$PlotSenOutput <- renderPlot({
@@ -336,22 +378,104 @@ server <- function(input, output) {
       facet_wrap(.~to.facet)
   }, res = 150)
   
+  
+  # Sentence plot on panel 2 (old)
+  # output$SenPlot2Output <- renderPlot({
+  #   data_offense_filter() %>% 
+  #     dplyr::filter(sentence_type %in% c("Confinement","Probation"),
+  #                   !is.na(max_period_days)) %>% 
+  #     ggplot(
+  #       aes(x = sentence_type,
+  #           y = max_period_days 
+  #       )) +
+  #     geom_boxplot(
+  #       alpha = .5,
+  #       show.legend = FALSE
+  #     ) +
+  #     geom_jitter(
+  #       alpha = .5,
+  #       height = 0,
+  #       width = 0.2,
+  #       show.legend = FALSE
+  #     ) + 
+  #     labs(
+  #       y = "Maximum Sentence (days)",
+  #       x = "Sentence Type",
+  #       title = "Maximum Sentence"
+  #     )
+  # }, res = 150)
+  
+  # Sentence plot on tab2 (new)
+  output$SenPlot2Output <- renderPlot({
+    if (input$facet_grade){
+      sentence_type_summary() %>% 
+        ggplot(aes(x=sentence_type, 
+                   y = 100*prop_sentence_type, 
+                   fill=select_judge)) + 
+        geom_bar(stat = "identity", position = "dodge") + 
+        geom_text(aes(label=n), size=2,
+                  position=position_dodge(width=0.9), vjust=-0.25) + 
+        facet_grid(.~grade+description_clean, scales = "free_x",space="free_x",
+                   labeller = labeller(description_clean = label_wrap_gen(25)))+
+        labs(title="Sentence type by judge and offense",
+             subtitle = "Selected judge: Rayford A. Means",
+             x = "", y = "Percentage",
+             fill = "Judge",
+             caption = "Only considering offenses with a disposition") + 
+        scale_fill_manual(values = c("lightgray","goldenrod3")) + 
+        theme_minimal() + 
+        theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+    } else{
+      sentence_type_summary() %>% 
+        ggplot(aes(x=sentence_type, 
+                   y = 100*prop_sentence_type, 
+                   fill=select_judge)) + 
+        geom_bar(stat = "identity", position = "dodge") + 
+        geom_text(aes(label=n), size=2,
+                  position=position_dodge(width=0.9), vjust=-0.25) + 
+        facet_grid(.~description_clean, scales = "free_x",space="free_x",
+                   labeller = labeller(description_clean = label_wrap_gen(25)))+
+        labs(title="Sentence type by judge and offense",
+             subtitle = "Selected judge: Rayford A. Means",
+             x = "", y = "Percentage",
+             caption = "Only considering offenses with a disposition") + 
+        scale_fill_manual(values = c("lightgray","goldenrod3")) + 
+        theme_minimal() + 
+        theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+    }
+    
+  })
+  
+  # Sentence plot by Race tab 3
+  output$SenPlot3Output <- renderPlot({
+    perct <- dispo_race() %>% 
+      add_count(sentence_type, name = "sentence_ct") %>% 
+      count(race, grade, sentence_type,sentence_ct, sort = TRUE) %>% 
+      mutate(pct_sentence = n /sentence_ct) 
+    
+    ggplot(perct) +
+      aes(x = grade, fill = race, weight = pct_sentence) +
+      geom_bar(position = "dodge") +
+      scale_fill_hue() +
+      labs(y = "percentage") +
+      theme_light() +
+      scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+      coord_flip() +
+      facet_wrap(vars(sentence_type))
+  })
+  
   # Bail plot 1: 
   output$BailPlot1Output <- renderPlot({
   bail_net_change_by_judge %>%
     ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
     geom_bar(stat='identity', width=.5) +
-    labs(fill = "Total # of Bail Amount Changes",
-         caption = "This plot shows the cumulative total of bail increases and decreases by a given judge.
-          Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
-          than they decrease them have a positive value, while the opposite is true for judges
-          that decrease bail amounts more often. The bar fill indicates the total number of 
-          bail changes (both increases and decreases") +
+    labs(fill = "Total # of Bail Amount Changes") +
     xlab("Judges") +
     ylab("Cumulative Total of Bail Increases and Decreases") +
-    theme(
-      plot.caption = element_text(hjust = 0)
-    )}, res = 150)
+      scale_x_discrete(labels = function(x) stringr::str_trunc(x, width=20)) + 
+    theme(plot.caption = element_text(hjust = 0),
+          axis.text.x = element_text(angle=90, hjust=1,vjust=0.5, size = 6)) 
+    }, res = 150)
   
   
   # Bail Plot 2:
@@ -359,12 +483,7 @@ server <- function(input, output) {
     bail_filtered() %>%
       ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
       geom_bar(stat='identity', width=.5) +
-      labs(fill = "Total # of Bail Amount Changes",
-           caption = "This plot shows the cumulative total of bail increases and decreases by a given judge.
-          Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
-          than they decrease them have a positive value, while the opposite is true for judges
-          that decrease bail amounts more often. The bar fill indicates the total number of 
-          bail changes (both increases and decreases)") +
+      labs(fill = "Total # of Bail Amount Changes") +
       xlab("Judges") +
       ylab("Cumulative Total of Bail Increases and Decreases") +
       theme(

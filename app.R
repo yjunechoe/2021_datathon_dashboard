@@ -288,11 +288,14 @@ server <- function(input, output) {
       filter(judge==input$judge,
              disposition_year >= input$year[1] & disposition_year <= input$year[2])
   })
+  
   # SentencePlot2 data
+  # This is just for the reactable - choose selected judge
   data_offense_filter <- reactive({
     merged %>% 
       filter(description_clean %in% input$description,
-             grade %in% input$grade)
+             grade %in% input$grade,
+             judge==input$judge_sentence)
   })
   
   sentence_length_summary <- reactive({

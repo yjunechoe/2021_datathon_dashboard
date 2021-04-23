@@ -1,0 +1,11 @@
+name: 2021_datathon_dashboard
+title:
+username:
+account: awalsh
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3986838
+bundleId: 4502455
+url: https://awalsh.shinyapps.io/2021_datathon_dashboard/
+when: 1619048918.9715
+lastSyncTime: 1619048918.97152

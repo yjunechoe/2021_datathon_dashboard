@@ -1,15 +1,3 @@
-# Source file that reads in data, misc. set ups, and other static things
-source("source.R", local = TRUE)
-
-# Call app
-source('ui.R', local = TRUE)
-source('server.R', local = TRUE)
-
-shiny::shinyApp(
-  ui = ui,
-  server = server,
-)
-
 # app.R 
 
 # Source file that reads in data, misc. set ups, and other static things
@@ -108,7 +96,7 @@ ui <- dashboardPage(
                          ##### bail plot panel 1 ####
                          tabPanel(title = "Cumulative total of bail changes", value = "BailPlot1Tab",
                          fluidRow(
-                           column(width = 11, plotOutput("BailPlot1Output"))
+                           column(width = 12, plotOutput("BailPlot1Output"))
                          ),
                          fluidRow(
                            column(width = 12,
@@ -497,7 +485,7 @@ server <- function(input, output) {
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     }
     
-  })
+  }, res = 150)
   
   output$SenPlot2bOutput <- renderPlot({
     if (input$facet_grade){
@@ -547,7 +535,7 @@ server <- function(input, output) {
         theme_minimal() + 
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     }
-  })
+  }, res = 150)
   
   
   # Sentence plot by Race tab 3
@@ -566,7 +554,7 @@ server <- function(input, output) {
       scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
       coord_flip() +
       facet_wrap(vars(sentence_type))
-  })
+  }, res = 150)
   
   # Bail plot 1: 
   output$BailPlot1Output <- renderPlot({
@@ -629,4 +617,3 @@ server <- function(input, output) {
 
 
 shinyApp(ui, server)
->>>>>>> pr/4

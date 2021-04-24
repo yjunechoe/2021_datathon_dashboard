@@ -96,7 +96,7 @@ ui <- dashboardPage(
                          ##### bail plot panel 1 ####
                          tabPanel(title = "Cumulative total of bail changes", value = "BailPlot1Tab",
                          fluidRow(
-                           column(width = 12, plotOutput("BailPlot1Output"))
+                           column(width = 12, girafeOutput("BailPlot1Output", height = NULL))
                          ),
                          fluidRow(
                            column(width = 12,
@@ -556,18 +556,38 @@ server <- function(input, output) {
       facet_wrap(vars(sentence_type))
   }, res = 150)
   
-  # Bail plot 1: 
-  output$BailPlot1Output <- renderPlot({
-  bail_net_change_by_judge %>%
-    ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
-    geom_bar(stat='identity', width=.5) +
-    labs(fill = "Total # of Bail Amount Changes") +
-    xlab("Judges") +
-    ylab("Cumulative Total of Bail Increases and Decreases") +
-      scale_x_discrete(labels = function(x) stringr::str_trunc(x, width=20)) + 
-    theme(plot.caption = element_text(hjust = 0),
-          axis.text.x = element_text(angle=90, hjust=1,vjust=0.5, size = 6)) 
-    }, res = 150)
+  # Bail plot 1 (interactive): 
+  output$BailPlot1Output <- renderGirafe({
+    thematic_off()
+    girafe_plot <- girafe(
+      ggobj = bail_net_change_by_judge %>%
+        ungroup() %>% 
+        ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
+        geom_bar_interactive(
+          aes(tooltip = glue("Judge: {judge}\nNet Change: {net_change}")),
+          stat='identity', width=.5
+        ) +
+        labs(
+          title = "Cumulative Total of Bail Increases and Decreases",
+          x = "Judges",
+          y = NULL,
+          fill = "Total # of Bail Amount Changes"
+        ) +
+        xlab("Judges") +
+        scale_x_discrete(labels = function(x) stringr::str_trunc(x, width=20)) + 
+        theme(
+          plot.caption = element_text(hjust = 0),
+          axis.text.x = element_text(angle=90, hjust=1,vjust=0.5, size = 6)
+        ),
+      options = list(
+        opts_tooltip(use_fill = TRUE),
+        opts_hover()
+      ),
+      width_svg = 24
+    )
+    thematic_on()
+    girafe_plot
+  })
   
   
   # Bail Plot 2:
@@ -581,12 +601,12 @@ server <- function(input, output) {
       theme(
         plot.caption = element_text(hjust = 0)
       )
-      }, res = 150)
+  }, res = 150)
   
-
+  
   
   # Debugging button - shinyapps.io asked me to disable this for deployment
-  # observeEvent(input$Debugger, {browser()})
+  observeEvent(input$Debugger, {browser()})
   
   
   #

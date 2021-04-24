@@ -389,16 +389,17 @@ server <- function(input, output) {
   output$JudgePlot1Output <- renderPlot({
     data_judge_filter() %>% 
       dplyr::mutate(description_clean = forcats::fct_lump(description_clean, n= 5)) %>% 
-      ggplot(aes(x=description_clean)) + 
-      geom_bar(position = "dodge") + 
+      count(description_clean) %>% 
+      ggplot(aes(x=reorder(description_clean, -n), y = n)) + 
+      geom_bar(position = "dodge", stat="identity") + 
       labs(title="What are the most common offenses adjudicated?",
            subtitle = paste0("Selected judge: ", input$judge),
            x = "Offense") + 
-      scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 15)) + 
-      theme(axis.text.x = element_text(size=5)) + 
+      scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 20)) + 
+      theme(axis.text.x = element_text(size=8)) + 
       NULL
     
-  }, res = 150)
+  }, res = 100)
   
   
 
@@ -421,7 +422,7 @@ server <- function(input, output) {
       scale_x_discrete(labels = scales::wrap_format(20)) + 
       scale_fill_discrete(labels = scales::wrap_format(10)) +
       facet_wrap(.~to.facet)
-  }, res = 150)
+  }, res = 100)
   
   
   # Sentence plot on panel 2 (old)
@@ -448,7 +449,7 @@ server <- function(input, output) {
   #       x = "Sentence Type",
   #       title = "Maximum Sentence"
   #     )
-  # }, res = 150)
+  # }, res = 100)
   
   # Sentence plot on tab2 (new)
   output$SenPlot2Output <- renderPlot({
@@ -488,7 +489,7 @@ server <- function(input, output) {
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     }
     
-  }, res = 150)
+  }, res = 100)
   
   output$SenPlot2bOutput <- renderPlot({
     if (input$facet_grade){
@@ -538,7 +539,7 @@ server <- function(input, output) {
         # theme_minimal() + 
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     }
-  }, res = 150)
+  }, res = 100)
   
   
   # Sentence plot by Race tab 3
@@ -557,7 +558,7 @@ server <- function(input, output) {
       scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
       coord_flip() +
       facet_wrap(vars(sentence_type))
-  }, res = 150)
+  }, res = 100)
   
 
   # Bail plot 1 (interactive): 
@@ -611,7 +612,7 @@ server <- function(input, output) {
         plot.caption = element_text(hjust = 0)
       )
 
-  }, res = 150)
+  }, res = 100)
 
   
   

@@ -610,7 +610,7 @@ server <- function(input, output) {
   
   
   # Debugging button - shinyapps.io asked me to disable this for deployment
-  observeEvent(input$Debugger, {browser()})
+  # observeEvent(input$Debugger, {browser()})
   
   
   #

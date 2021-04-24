@@ -21,10 +21,12 @@ library(reactable)
 library(reactablefmtr)
 library(data.table)
 library(rlang)
+library(stringr)
 library(glue)
 library(dplyr)
 library(forcats)
 library(lubridate)
+library(ggiraph)
 
 # Plot themes ----
 

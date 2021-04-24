@@ -258,7 +258,8 @@ ui <- dashboardPage(
               fluidPage(
                 fluidRow(
                   column(width = 2),
-                  column(width = 10)
+                  column(width = 10,
+                         "This dashboard was created as part of the R-Ladies Philly 2021 Datathon.")
                 )
               )
       )

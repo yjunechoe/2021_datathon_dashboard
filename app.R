@@ -60,7 +60,13 @@ ui <- dashboardPage(
                                               value=c(2010, 2020), step=1, 
                                               round=T, sep="")
                                     )
-                                  )
+                                  ),
+                
+                       
+                       ### bottom row ####
+                       fluidRow(
+                         column(width = 12, reactableOutput("TableOutputJudge1"))
+                       )
                          ),
                          
               ##### judge second plot panel ####
@@ -71,12 +77,6 @@ ui <- dashboardPage(
                                   )
                          )
                   )
-                ),
-                
-              
-              ### bottom row ####
-              fluidRow(
-                  column(width = 12, reactableOutput("TableOutputJudge1"))
                 )
               )
       ),
@@ -94,7 +94,8 @@ ui <- dashboardPage(
                   tabBox(id = "PlotsTabset", width = 12,
                          
                          ##### bail plot panel 1 ####
-                         tabPanel(title = "Cumulative total of bail changes", value = "BailPlot1Tab",
+                         tabPanel(title = "Net Bail Amount Actions - Compare All Judges", 
+                                  value = "BailPlot1Tab",
                          fluidRow(
                            column(width = 11, plotOutput("BailPlot1Output"))
                          ),
@@ -104,11 +105,12 @@ ui <- dashboardPage(
           Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
           than they decrease them have a positive value, while the opposite is true for judges
           that decrease bail amounts more often. The bar fill indicates the total number of 
-          bail changes (both increases and decreases"
+          bail changes (both increases and decreases)."
                            ))
                         ),
                         ##### bail plot panel 2 ####
-                        tabPanel(title = "Total # of Bail Amount Changes", value = "BailPlot2Tab",
+                        tabPanel(title = "Net Bail Amount Actions - Compare Selected Judges", 
+                                 value = "BailPlot2Tab",
                        fluidRow(
                          column(width = 10, plotOutput("BailPlot2Output")),
                          column(width = 2,
@@ -125,7 +127,7 @@ ui <- dashboardPage(
           Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
           than they decrease them have a positive value, while the opposite is true for judges
           that decrease bail amounts more often. The bar fill indicates the total number of 
-          bail changes (both increases and decreases"
+          bail changes (both increases and decreases)."
                          )),
                        ### bottom row ####
                        fluidRow(
@@ -411,7 +413,7 @@ server <- function(input, output) {
                  shape = gender)) +
       geom_jitter(pch = 21, width = 0.3) + 
       scale_size_continuous(name="Age_at_Arrest", range = c(.2,3)) +
-      theme_minimal() + 
+      # theme_minimal() + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.text = element_text(size = 5)) +
       labs(y="Max Confinement Time (Years)", x = paste(input$x.axis)) +
       guides(fill = guide_legend(override.aes = list(size = 3))) + 
@@ -465,7 +467,7 @@ server <- function(input, output) {
              fill = "Judge",
              caption = "Only considering offenses with a disposition") + 
         scale_fill_manual(values = c("lightgray","goldenrod3")) + 
-        theme_minimal() + 
+        # theme_minimal() + 
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     } else{
       sentence_type_summary() %>% 
@@ -481,7 +483,7 @@ server <- function(input, output) {
              x = "", y = "Percentage",
              caption = "Only considering offenses with a disposition") + 
         scale_fill_manual(values = c("lightgray","goldenrod3")) + 
-        theme_minimal() + 
+        # theme_minimal() + 
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     }
     
@@ -509,7 +511,7 @@ server <- function(input, output) {
            caption = "Only considering offenses with a disposition") + 
       scale_color_manual(values = c("lightgray","goldenrod3")) + 
       coord_flip() + 
-      theme_minimal() + 
+      # theme_minimal() + 
       theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     } else{
       sentence_length_summary() %>% 
@@ -532,7 +534,7 @@ server <- function(input, output) {
              caption = "Only considering offenses with a disposition") + 
         scale_color_manual(values = c("lightgray","goldenrod3")) + 
         coord_flip() + 
-        theme_minimal() + 
+        # theme_minimal() + 
         theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
     }
   })
@@ -550,7 +552,7 @@ server <- function(input, output) {
       geom_bar(position = "dodge") +
       scale_fill_hue() +
       labs(y = "percentage") +
-      theme_light() +
+      # theme_light() +
       scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
       coord_flip() +
       facet_wrap(vars(sentence_type))
@@ -563,11 +565,11 @@ server <- function(input, output) {
     geom_bar(stat='identity', width=.5) +
     labs(fill = "Total # of Bail Amount Changes") +
     xlab("Judges") +
-    ylab("Cumulative Total of Bail Increases and Decreases") +
+    ylab("Cumulative Total of\nBail Increases and Decreases") +
       scale_x_discrete(labels = function(x) stringr::str_trunc(x, width=20)) + 
     theme(plot.caption = element_text(hjust = 0),
           axis.text.x = element_text(angle=90, hjust=1,vjust=0.5, size = 6)) 
-    }, res = 150)
+    }, res = 100)
   
   
   # Bail Plot 2:
@@ -575,13 +577,14 @@ server <- function(input, output) {
     bail_filtered() %>%
       ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
       geom_bar(stat='identity', width=.5) +
+      geom_hline(yintercept = 0) + 
       labs(fill = "Total # of Bail Amount Changes") +
       xlab("Judges") +
-      ylab("Cumulative Total of Bail Increases and Decreases") +
+      ylab("Cumulative Total of\nBail Increases and Decreases") +
       theme(
         plot.caption = element_text(hjust = 0)
       )
-      }, res = 150)
+      }, res = 100)
   
 
   
@@ -599,7 +602,9 @@ server <- function(input, output) {
   
   # Reactable for Judge tab 1, on row 2
   output$TableOutputJudge1 <- renderReactable({
-    reactable(data_judge_filter())
+    reactable(data_judge_filter()%>% 
+                select(Judge = judge, `Offense Description` = description_clean) %>% 
+                count(Judge, `Offense Description`, sort=T))
   })
   
   # Reactable for Sentence tab 2, on row 2
@@ -609,7 +614,7 @@ server <- function(input, output) {
   
   # Reactable for Bail tab 
   output$TableOutputBail1 <- renderReactable({
-    reactable(bail_filtered())
+    reactable(dplyr::select(bail_filtered(), -action_type))
   })
   
 }

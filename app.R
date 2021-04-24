@@ -564,7 +564,10 @@ server <- function(input, output) {
         ungroup() %>% 
         ggplot(aes(y=net_change, x=reorder(judge, -net_change), fill=n)) +
         geom_bar_interactive(
-          aes(tooltip = glue("Judge: {judge}\nNet Change: {net_change}")),
+          aes(
+            tooltip = glue("Judge: {judge}\nNet Change: {net_change}"),
+            data_id = str_trim(str_remove_all(judge, "[:punct:]"))
+          ),
           stat='identity', width=.5
         ) +
         labs(
@@ -581,6 +584,7 @@ server <- function(input, output) {
         ),
       options = list(
         opts_tooltip(use_fill = TRUE),
+        opts_selection(),
         opts_hover()
       ),
       width_svg = 24

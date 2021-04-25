@@ -438,11 +438,10 @@ server <- function(input, output) {
   filtered.data <- eventReactive(input$sent_button, {
     merged.narrow %>%
       #filter based on selection
-      dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
-                                              Judge, "Other Judges")) %>%
       dplyr::filter(race %in% input$races,
              max_grade %in% input$max_grade,
-             !is.na(eval(parse(text = input$y.axis))),
+             Type == input$y.axis,
+             # !is.na(eval(parse(text = input$y.axis))),
              stringr::str_detect(tolower(statute_description),
                                        paste(tolower(input$crime_descriptions), collapse = "|") ) |
              stringr::str_detect(tolower(Chapter_Description),
@@ -453,11 +452,16 @@ server <- function(input, output) {
                                 paste(tolower(input$disposition_methods), collapse = "|") )
              
              ) %>% 
-      dplyr::mutate(on.y.axis = eval(parse(text = input$y.axis))) %>%
+      # dplyr::mutate(on.y.axis = eval(parse(text = input$y.axis))) %>%
+      dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
+                                             Judge, "Other Judges")) %>%
       dplyr::mutate(select_judges = forcats::fct_lump_n(in_select_judges, n = input$nfactors)) %>% 
       dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors))
   })
   text.y.axis <- eventReactive(input$sent_button, { input$y.axis})
+  
+  
+  
   # Roy bail data filtered
   bail_filtered <- reactive({
     bail_net_change_by_judge %>% 
@@ -524,7 +528,7 @@ server <- function(input, output) {
   output$PlotSenOutput <- renderPlot({
     filtered.data() %>%
       ggplot(aes(x = select_judges, 
-                 y = on.y.axis, 
+                 y = Time, 
                  fill = race, 
                  #size = Age_at_Arrest, 
                  shape = gender)) +
@@ -739,7 +743,11 @@ server <- function(input, output) {
   #
   # Reactable for sentences plot 1
   output$TableOutputSentences1 <- renderReactable({
-    reactable(filtered.data())
+    reactable(filtered.data() %>% 
+                select(docket_id, Judge, min_grade, 
+                       max_grade, Time, Type,
+                       Age_at_Arrest, race, gender, disposition, Title_Description, 
+                       Chapter_Description, statute_description))
   })
   
   # Reactable for Judge tab 1, on row 2

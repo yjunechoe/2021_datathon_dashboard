@@ -441,15 +441,17 @@ server <- function(input, output) {
       dplyr::filter(race %in% input$races,
              max_grade %in% input$max_grade,
              Type == input$y.axis,
+             disposition_method %in% input$disposition_methods) %>% 
+      dplyr::filter(
              # !is.na(eval(parse(text = input$y.axis))),
              stringr::str_detect(tolower(statute_description),
                                        paste(tolower(input$crime_descriptions), collapse = "|") ) |
              stringr::str_detect(tolower(Chapter_Description),
-                                   paste(tolower(input$crime_descriptions), collapse = "|") ),
+                                   paste(tolower(input$crime_descriptions), collapse = "|") )
              # stringr::str_detect(tolower(Title_Description),
              #                    paste(tolower(input$title_descriptions), collapse = "|") ),
-             stringr::str_detect(tolower(disposition_method),
-                                paste(tolower(input$disposition_methods), collapse = "|") )
+             # stringr::str_detect(tolower(disposition_method),
+             #                    paste(tolower(input$disposition_methods), collapse = "|") )
              
              ) %>% 
       # dplyr::mutate(on.y.axis = eval(parse(text = input$y.axis))) %>%

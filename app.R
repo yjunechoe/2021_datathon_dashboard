@@ -156,10 +156,14 @@ ui <- dashboardPage(
                                        plotOutput("BailPlot3Output", height = "800px")),
                                 column(width = 2,
                                        selectInput('bail_judge3', 'Judge', bail_judge_options),
-                                       selectInput('bail_year3', 'Year Range', 
+                                       checkboxGroupInput('bail_year3', 'Year Range', 
                                                    sort(unique(completerecords$year)),
-                                                   selected =unique(completerecords$year),
-                                                   multiple = TRUE)
+                                                   selected =unique(completerecords$year))
+                                       # actionButton("bail_button", "Plot", class = "btn-success", color = "purple")
+                                       # selectInput('bail_year3', 'Year Range', 
+                                       #             sort(unique(completerecords$year)),
+                                       #             selected =unique(completerecords$year),
+                                       #             multiple = TRUE)
                                        # selectInput('bail_action3', 'Action Type',
                                        #             sort(unique(completerecords$action_type_name)),
                                        #             selected = c("Set","Reinstate","Revoke","Revoke and Forfeit"),
@@ -239,7 +243,8 @@ ui <- dashboardPage(
                                                        choices = options, 
                                                        selected = "Chapter_Description"),
                                            selectInput("facet","Separate By", 
-                                                       choices = options, selected = "Judge")
+                                                       choices = options, selected = "Judge"),
+                                           actionButton("sent_button", "Plot", icon("paper-plane"))
                                     ),
                                     column(width = 10, style = "height:800px",
                                            align = "left",
@@ -422,7 +427,7 @@ server <- function(input, output) {
   
   
   # Sentence plot 1 data (AM)
-  filtered.data <- reactive({
+  filtered.data <- eventReactive(input$sent_button, {
     merged.narrow %>%
       #filter based on selection
       dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
@@ -435,7 +440,9 @@ server <- function(input, output) {
              stringr::str_detect(tolower(disposition_method),
                                 paste(tolower(input$disposition_methods), collapse = "|") )
              
-             )
+             ) %>% 
+      dplyr::mutate(on.x.axis = forcats::fct_lump_n(eval(parse(text = input$x.axis)), n = input$nfactors)) %>% 
+      dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors))
 
   })
   
@@ -504,8 +511,6 @@ server <- function(input, output) {
   # Sentences Plot 1 ###########
   output$PlotSenOutput <- renderPlot({
     filtered.data() %>%
-      dplyr::mutate(on.x.axis = forcats::fct_lump_n(eval(parse(text = input$x.axis)), n = input$nfactors)) %>% #head()
-      dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors)) %>%
       ggplot(aes(x = on.x.axis, 
                  y = Confinement_Time, 
                  fill = race, 
@@ -527,72 +532,35 @@ server <- function(input, output) {
   # Sentence plot on tab2a (alice) #####
   output$SenPlot2Output <- renderPlot({
     if (input$facet_grade){
-      sentence_type_summary() %>% 
+      pp <- sentence_type_summary() %>% 
         ggplot(aes(x=sentence_type, 
                    y = 100*prop_sentence_type, 
                    fill=select_judge)) + 
-        geom_bar(stat = "identity", position = "dodge") + 
-        geom_text(aes(label=n), size=2,
-                  position=position_dodge(width=0.9), vjust=-0.25) + 
         facet_grid(.~grade, scales = "free_x",space="free_x",
-                   labeller = labeller(description_clean = label_wrap_gen(25)))+
-        labs(title="Sentence type by judge and offense",
-             subtitle = input$description,
-             x = "", y = "Percentage",
-             fill = "Judge",
-             caption = "Only considering offenses with a disposition") + 
-        scale_fill_manual(values = c("lightgray","goldenrod3")) + 
-        # theme_minimal() + 
-        theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+                   labeller = labeller(description_clean = label_wrap_gen(25)))
     } else{
-      sentence_type_summary() %>% 
+      pp <- sentence_type_summary() %>% 
         ggplot(aes(x=sentence_type, 
                    y = 100*prop_sentence_type, 
-                   fill=select_judge)) + 
-        geom_bar(stat = "identity", position = "dodge") + 
-        geom_text(aes(label=n), size=2,
-                  position=position_dodge(width=0.9), vjust=-0.25) + 
-        # facet_grid(.~description_clean, scales = "free_x",space="free_x",
-        #            labeller = labeller(description_clean = label_wrap_gen(25)))+
-        labs(title="Sentence type by judge and offense",
-             x = "", y = "Percentage",
-             subtitle = input$description,
-             caption = "Only considering offenses with a disposition") + 
-        scale_fill_manual(values = c("lightgray","goldenrod3")) + 
-        # theme_minimal() + 
-        theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+                   fill=select_judge)) 
     }
-    
+    pp + 
+      geom_bar(stat = "identity", position = "dodge") + 
+      geom_text(aes(label=n), size=2,
+                position=position_dodge(width=0.9), vjust=-0.25) + 
+      labs(title="Sentence type by judge and offense",
+           x = "", y = "Percentage",
+           fill = "Judge",
+           subtitle = input$description,
+           caption = "Only considering offenses with a disposition") + 
+      scale_fill_manual(values = c("lightgray","goldenrod3")) + 
+      theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
   }, res = 100)
   
   # Sentence plot on tab2b (alice) #####
   output$SenPlot2bOutput <- renderPlot({
     if (input$facet_grade){
-    sentence_length_summary() %>% 
-      filter(sentence_type %in% c("Confinement","Probation")) %>% 
-      tidyr::pivot_longer(ends_with("days")) %>% 
-      filter(name %in% c("median_min_days","median_max_days")) %>% 
-      mutate(group = paste(select_judge,sentence_type)) %>% 
-      ggplot( aes(x=sentence_type, 
-                  y = value,
-                  group = group,
-                  color=select_judge)) + 
-      geom_point(position = position_dodge(width=0.4), size = 3) + 
-      geom_line(position = position_dodge(width=0.4), 
-                size=1.5, alpha=0.7) +
-      facet_grid(.~grade, scales = "free_x",space="free_x",
-                 drop=T,
-                 labeller = labeller(grade_desc = label_wrap_gen(25)))+
-      labs(title="Sentence length by judge and offense",
-           subtitle = input$description,
-           x = "", y = "Median Sentence min/max (days)",
-           caption = "Only considering offenses with a disposition") + 
-      scale_color_manual(values = c("lightgray","goldenrod3")) + 
-      coord_flip() + 
-      # theme_minimal() + 
-      theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
-    } else{
-      sentence_length_summary() %>% 
+      sent_plotb <- sentence_length_summary() %>% 
         filter(sentence_type %in% c("Confinement","Probation")) %>% 
         tidyr::pivot_longer(ends_with("days")) %>% 
         filter(name %in% c("median_min_days","median_max_days")) %>% 
@@ -601,21 +569,34 @@ server <- function(input, output) {
                     y = value,
                     group = group,
                     color=select_judge)) + 
-        geom_point(position = position_dodge(width=0.4), size = 3) + 
-        geom_line(position = position_dodge(width=0.4), 
-                  size=1.5, alpha=0.7) +
-        # facet_grid(.~description_clean, scales = "free_x",space="free_x",
-        #            drop=T,
-        #            labeller = labeller(grade_desc = label_wrap_gen(25)))+
-        labs(title="Sentence length by judge and offense",
-             subtitle = input$description,
-             x = "", y = "Median Sentence min/max (days)",
-             caption = "Only considering offenses with a disposition") + 
-        scale_color_manual(values = c("lightgray","goldenrod3")) + 
-        coord_flip() + 
-        # theme_minimal() + 
-        theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+        facet_grid(.~grade, scales = "free_x",space="free_x",
+                   drop=T,
+                   labeller = labeller(grade_desc = label_wrap_gen(25)))
+    } else{
+      sent_plotb <-  sentence_length_summary() %>% 
+        filter(sentence_type %in% c("Confinement","Probation")) %>% 
+        tidyr::pivot_longer(ends_with("days")) %>% 
+        filter(name %in% c("median_min_days","median_max_days")) %>% 
+        mutate(group = paste(select_judge,sentence_type)) %>% 
+        ggplot( aes(x=sentence_type, 
+                    y = value,
+                    group = group,
+                    color=select_judge)) 
     }
+    
+    sent_plotb + 
+      geom_point(position = position_dodge(width=0.4), size = 3) + 
+      geom_line(position = position_dodge(width=0.4), 
+                size=1.5, alpha=0.7) + 
+      labs(title="Sentence length by judge and offense",
+           subtitle = input$description,
+           x = "", y = "Median Sentence min/max (days)",
+           color = "Judge",
+           caption = "Only considering offenses with a disposition") + 
+      scale_color_manual(values = c("lightgray","goldenrod3")) + 
+      coord_flip() + 
+      theme(axis.text.x = element_text(angle=90, hjust=1,vjust=0.5))
+    
   }, res = 100)
   
   

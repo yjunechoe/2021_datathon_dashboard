@@ -156,6 +156,8 @@ ui <- dashboardPage(
                        value = "SenPlot1Tab",
                                   fluidRow(
                                     column(width = 2,style = "height:800px",
+                                           selectInput("y.axis","Y Axis", 
+                                                       choices = c("Confinement_Time","Probation_Time"), selected = "Confinement_Time"),
                                            pickerInput('judges_of_interest', 
                                                        'Judges of Interest', 
                                                        choices = unique(merged.narrow$Judge),
@@ -164,22 +166,28 @@ ui <- dashboardPage(
                                                        multiple = TRUE),
                                            textInput("crime_descriptions","Crime Description",
                                                      value = ""),
-                                           textInput("title_descriptions","Title Description",
-                                                     value = ""),
-                                           textInput("disposition_methods","Disposition Method",
-                                                     value = ""),
+                                           pickerInput("disposition_methods","Disposition Method", 
+                                                       choices = unique(merged.narrow$disposition_method), 
+                                                       multiple = TRUE, 
+                                                       selected = unique(merged.narrow$disposition_method),
+                                                       options = list(`actions-box` = TRUE)),
                                            pickerInput("races","Race", 
                                                        choices = unique(merged.narrow$race), 
                                                        multiple = TRUE, 
                                                        selected = unique(merged.narrow$race),
                                                        options = list(`actions-box` = TRUE)),
+                                           pickerInput("max_grade","Grade", 
+                                                       choices = unique(as.character(merged.narrow$max_grade)), 
+                                                       multiple = TRUE, 
+                                                       selected = unique(as.character(merged.narrow$max_grade)),
+                                                       options = list(`actions-box` = TRUE)),
                                            numericInput("nfactors","Number Categories",
-                                                        value = 6, min = 1, max = 10),
-                                           selectInput("x.axis","On X Axis",
-                                                       choices = options, 
-                                                       selected = "Chapter_Description"),
+                                                        value = 5, min = 1, max = 10),
+                                           # selectInput("x.axis","On X Axis",
+                                           #             choices = options, 
+                                           #             selected = "Chapter_Description"),
                                            selectInput("facet","Separate By", 
-                                                       choices = options, selected = "Judge")
+                                                       choices = options, selected = "statute_description")
                                     ),
                                     column(width = 10, style = "height:800px",
                                            align = "left",
@@ -360,10 +368,13 @@ server <- function(input, output) {
       dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
                                               Judge, "Other Judges")) %>%
       filter(race %in% input$races,
+             max_grade %in% input$max_grade,
              stringr::str_detect(tolower(statute_description),
-                                       paste(tolower(input$crime_descriptions), collapse = "|") ),
-             stringr::str_detect(tolower(Title_Description),
-                                paste(tolower(input$title_descriptions), collapse = "|") ),
+                                       paste(tolower(input$crime_descriptions), collapse = "|") ) |
+               stringr::str_detect(tolower(Chapter_Description),
+                                   paste(tolower(input$crime_descriptions), collapse = "|") ),
+             # stringr::str_detect(tolower(Title_Description),
+             #                    paste(tolower(input$title_descriptions), collapse = "|") ),
              stringr::str_detect(tolower(disposition_method),
                                 paste(tolower(input$disposition_methods), collapse = "|") )
              
@@ -406,22 +417,21 @@ server <- function(input, output) {
   # Sentences Plot 1
   output$PlotSenOutput <- renderPlot({
     filtered.data() %>%
-      dplyr::mutate(on.x.axis = forcats::fct_lump_n(eval(parse(text = input$x.axis)), n = input$nfactors)) %>% #head()
+      #dplyr::mutate(on.x.axis = forcats::fct_lump_n(eval(parse(text = input$x.axis)), n = input$nfactors)) %>% #head()
+      dplyr::mutate(select_judges = forcats::fct_lump_n(in_select_judges, n = input$nfactors)) %>% #head()
       dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors)) %>%
-      ggplot(aes(x = on.x.axis, 
-                 y = Confinement_Time, 
+      ggplot(aes(x = select_judges, 
+                 y = eval(parse(text = input$y.axis)), 
                  fill = race, 
-                 size = Age_at_Arrest, 
+                 #size = Age_at_Arrest, 
                  shape = gender)) +
       geom_jitter(pch = 21, width = 0.3) + 
-      scale_size_continuous(name="Age_at_Arrest", range = c(.2,3)) +
-      # theme_minimal() + 
-      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.text = element_text(size = 5)) +
-      labs(y="Max Confinement Time (Years)", x = paste(input$x.axis)) +
-      guides(fill = guide_legend(override.aes = list(size = 3))) + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.text = element_text(size = 10)) + 
+      labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
+      guides(fill = guide_legend(override.aes = list(size = 3))) + #ggtitle(paste("Crimes Associated with '",input$crime_descriptions,"'")) +
       scale_x_discrete(labels = scales::wrap_format(20)) + 
       scale_fill_discrete(labels = scales::wrap_format(10)) +
-      facet_wrap(.~to.facet)
+      facet_wrap(.~to.facet,labeller = label_wrap_gen(), scales = "free_x")
   }, res = 100)
   
   

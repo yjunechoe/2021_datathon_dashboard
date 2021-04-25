@@ -58,10 +58,13 @@ merged <- readRDS('./data/merged_filt_offenses_shiny.Rds')
 
 # Load Alison data
 merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds') %>% 
-  dplyr::mutate(Confinement_Time = max_period_days_Confinement/365) %>% 
+  dplyr::mutate(Confinement_Time = max_period_days_Confinement/365) %>%  
+  dplyr::mutate(Probation_Time = max_period_days_Probation/365) %>% 
   # filter here for Confinement_Time NA - this was a lot of the data and this...
   # dataset is only used to plot Confinement_Time so these are dropped later
-  dplyr::filter(!is.na(Confinement_Time))
+  dplyr::filter(!is.na(Confinement_Time) | !is.na(Probation_Time))
+
+
 
 # Load Roy data
 bail_net_change_by_judge <- readRDS('./data/bailnetchangebyjudge.rds')
@@ -72,18 +75,14 @@ dispo_det <- readRDS('./data/kk_dispo_det.Rds')
 
 options <-
   c(
-    "Judge",
-    "min_grade",
+    #"Judge",
     "max_grade",
     "statute_description",
     "disposition",
     "disposition_method",
-    "sentence_type",
-    "Title_Description",
     "Chapter_Description",
     "gender",
-    "race",
-    "in_select_judges"
+    "race"
   )
 # Display options in order of most common
 judge_options <-

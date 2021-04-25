@@ -16,10 +16,10 @@ ui <- dashboardPage(
   ## left sidebar ====
   sidebar = dashboardSidebar(
     shinydashboard::sidebarMenu(
+      menuItem("About", tabName = "AboutTab", icon = icon("info")),
       menuItem("Sentences", tabName = "SentenceTab", icon = icon("warning-sign", lib = "glyphicon")),
       menuItem("Bail", tabName = "BailTab", icon = icon("dollar")),
-      menuItem("Basic Judge Info", tabName = "JudgeTab", icon = icon("user")),
-      menuItem("About", tabName = "AboutTab", icon = icon("info"))
+      menuItem("Basic Judge Info", tabName = "JudgeTab", icon = icon("user"))
     )
   ),
   
@@ -135,8 +135,53 @@ ui <- dashboardPage(
                                 reactableOutput("TableOutputBail1")
                          )
                        )
+                      ),
+                      
+                      ##### bail plot panel 3 ####
+                      tabPanel(title = "Bail Amount - Seasonal Patterns", 
+                               value = "BailPlot3Tab",
+                               fluidRow(
+                                 column(width = 10, plotOutput("BailPlot3Output")),
+                                 column(width = 2,
+                                        selectInput('bail_judge3', 'Judge', bail_judge_options),
+                                        selectInput('bail_year3', 'Year Range', 
+                                                    sort(unique(completerecords$year)),
+                                                    selected =unique(completerecords$year),
+                                                    multiple = TRUE)
+                                        # selectInput('bail_action3', 'Action Type',
+                                        #             sort(unique(completerecords$action_type_name)),
+                                        #             selected = c("Set","Reinstate","Revoke","Revoke and Forfeit"),
+                                        #             multiple = TRUE),
+                                        # selectInput('bail_race3', 'Race',
+                                        #             sort(unique(completerecords$race)),
+                                        #             selected = unique(completerecords$race),
+                                        #             multiple = TRUE)
+                                 
+                               ),
+                               hr(),
+                               fluidRow(
+                                 column(width = 12,
+                                        "Bail amounts over $1 Million were excluded."
+                                 )),
+                               hr(),
+                               fluidRow(
+                                 column(width = 10, plotOutput("BailPlot3bOutput"))
+                                        
+                                 ),
+                                 hr(),
+                                 fluidRow(
+                                   column(width = 12,
+                                          "Mean bail amount for all years judge has been in office grouped by race and action type."
+                                   )),
+                               ### bottom row ####
+                               fluidRow(
+                                 column(width = 12, 
+                                        reactableOutput("TableOutputBail3")
+                                 )
+                               )
                       )
                   )
+              )
               )
               )
       ),
@@ -259,7 +304,8 @@ ui <- dashboardPage(
                 fluidRow(
                   column(width = 2),
                   column(width = 10,
-                         "This dashboard was created as part of the R-Ladies Philly 2021 Datathon.")
+                         "This dashboard was created as part of the R-Ladies Philly 2021 Datathon.",
+                         "To navigate the dashboard, choose a selection (Bail, Sentences) and then view an analysis in each tab of the corresponding pages.")
                 )
               )
       )
@@ -353,7 +399,7 @@ server <- function(input, output) {
   })
   
   
-  # Sentence plot 1 data
+  # Sentence plot 1 data (AM)
   filtered.data <- reactive({
     merged.narrow %>%
       #filter based on selection
@@ -380,6 +426,16 @@ server <- function(input, output) {
   # Kulbir data filtered sentences #3
   dispo_race<- reactive({
     dispo_det %>% filter(race %in% input$race_sentence) 
+  })
+  
+  # Sybil bail data filtered
+  bail_season_filtered <- reactive({
+    completerecords %>% 
+      filter(Judge == input$bail_judge3,
+             year %in% input$bail_year3
+             # race %in% input$bail_race3,
+             # action_type_name %in% input$bail_action3
+             )
   })
   
   #
@@ -544,8 +600,14 @@ server <- function(input, output) {
   
   # Sentence plot by Race tab 3
   output$SenPlot3Output <- renderPlot({
+    # Original (denominator is total sentences for given type)
+    # perct <- dispo_race() %>% 
+    #   add_count(sentence_type, name = "sentence_ct") %>% 
+    #   count(race, grade, sentence_type,sentence_ct, sort = TRUE) %>% 
+    #   mutate(pct_sentence = n /sentence_ct) 
+    # Suggestion (denominator is total cases of given race/grade)
     perct <- dispo_race() %>% 
-      add_count(sentence_type, name = "sentence_ct") %>% 
+      add_count(race, grade, name = "sentence_ct") %>% 
       count(race, grade, sentence_type,sentence_ct, sort = TRUE) %>% 
       mutate(pct_sentence = n /sentence_ct) 
     
@@ -613,6 +675,41 @@ server <- function(input, output) {
       )
 
   }, res = 100)
+  
+  # Bail Plot 3a:
+  output$BailPlot3Output <- renderPlot({
+    
+    if (nrow(bail_season_filtered())<1)
+      return(NULL)
+    bail_season_filtered() %>%
+      filter(total_amount < 1e6) %>% 
+      ggplot(aes(x = month, y = total_amount, fill = factor(race))) +
+      scale_y_log10() + 
+      coord_flip() +
+      geom_point(pch = 21, position = position_jitterdodge()) +
+      facet_wrap(~action_type_name, labeller = label_wrap_gen(20)) +
+      theme(legend.position="bottom") +
+      labs(title = paste("Judge:",input$bail_judge3), 
+           x = "Season", y = "Bail Amount", fill = "Race")
+    
+  }, res = 100)
+  # Bail Plot 3b:
+  output$BailPlot3bOutput <- renderPlot({
+    
+    if (nrow(bail_season_filtered())<1)
+      return(NULL)
+    bail_season_filtered() %>%
+      group_by(race, action_type_name) %>%
+      summarize(mean_total_amount =mean(total_amount)) %>%
+      mutate(race=forcats::fct_reorder(race, mean_total_amount)) %>% 
+      ggplot(aes(x = factor(action_type_name), y = mean_total_amount, fill = race )) +
+      coord_flip() +
+      geom_col(position="dodge", color="black") +
+      labs(title = paste("Judge:",input$bail_judge3), 
+           subtitle = "Municipal Court", 
+           caption = "Mean bail amount for all years judge has been in office grouped by race and action type.", 
+           x = "Action Type", y = "Mean Bail Amount")
+  }, res = 100)
 
   
   
@@ -640,10 +737,16 @@ server <- function(input, output) {
     reactable(data_offense_filter())
   })
   
-  # Reactable for Bail tab 
+  # Reactable for Bail tab 2
   output$TableOutputBail1 <- renderReactable({
     reactable(dplyr::select(bail_filtered(), -action_type))
   })
+  
+  # Reactable for Bail tab 3
+  output$TableOutputBail3 <- renderReactable({
+    reactable(bail_season_filtered())
+  })
+  
   
 }
 

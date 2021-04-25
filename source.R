@@ -68,7 +68,13 @@ bail_net_change_by_judge <- readRDS('./data/bailnetchangebyjudge.rds')
 
 # Load Kulbir data
 dispo_det <- readRDS('./data/kk_dispo_det.Rds')
+
+# Load Sybil data
+completerecords <- readRDS('./data/new_bail_data.rds') %>% 
+  mutate(month = factor(month, levels = c("Spring","Summer","Fall","Winter")))
+
 # Create some other variables that the app uses: ----
+bail_judge_options <- unique(completerecords$Judge)
 
 options <-
   c(

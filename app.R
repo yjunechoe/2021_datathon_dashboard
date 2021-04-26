@@ -253,8 +253,9 @@ ui <- dashboardPage(
                                            #             choices = options, 
                                            #             selected = "Chapter_Description"),
                                            selectInput("facet","Separate By", 
-                                                       choices = options, selected = "statute_description"),
-                                           actionButton("sent_button", "Plot", icon("paper-plane"))
+                                                       choices = options, selected = "statute_description")
+                                           # actionButton("sent_button", "Plot", icon("paper-plane"))
+                                           
                                     ),
                                     column(width = 10, style = "height:800px",
                                            align = "left",
@@ -435,7 +436,8 @@ server <- function(input, output) {
   
   
   # Sentence plot 1 data (AM)
-  filtered.data <- eventReactive(input$sent_button, {
+  # filtered.data <- eventReactive(input$sent_button, {
+  filtered.data <- reactive({
     merged.narrow %>%
       #filter based on selection
       dplyr::filter(race %in% input$races,
@@ -460,7 +462,7 @@ server <- function(input, output) {
       dplyr::mutate(select_judges = forcats::fct_lump_n(in_select_judges, n = input$nfactors)) %>% 
       dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors))
   })
-  text.y.axis <- eventReactive(input$sent_button, { input$y.axis})
+  # text.y.axis <- eventReactive(input$sent_button, { input$y.axis})
   
   
   
@@ -534,7 +536,8 @@ server <- function(input, output) {
                  fill = race)) +
       geom_jitter(pch = 21, width = 0.3) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.text = element_text(size = 10)) + 
-      labs(y=paste("Max", text.y.axis(),"(Years)"), x = "Judges") +
+      # labs(y=paste("Max", text.y.axis(),"(Years)"), x = "Judges") +
+      labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
       guides(fill = guide_legend(override.aes = list(size = 3))) + 
       #ggtitle(paste("Crimes Associated with '",input$crime_descriptions,"'")) +
       scale_x_discrete(labels = scales::wrap_format(20)) + 

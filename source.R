@@ -60,7 +60,9 @@ merged <- readRDS('./data/merged_filt_offenses_shiny.Rds')
 # Could save a bit of time for loading
 merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds') %>%
   dplyr::mutate(Confinement_Time = max_period_days_Confinement/365.25,
-                Probation_Time = max_period_days_Probation/365.25) %>%
+                Probation_Time = max_period_days_Probation/365.25,
+                statute_description = stringr::str_to_lower(statute_description),
+                Chapter_Description = stringr::str_to_lower(Chapter_Description)) %>%
   # filter here for Confinement_Time NA - this was a lot of the data and this...
   # dataset is only used to plot Confinement_Time so these are dropped later
   # dplyr::filter(!is.na(Confinement_Time) | !is.na(Probation_Time)) %>%

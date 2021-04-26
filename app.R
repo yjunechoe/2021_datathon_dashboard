@@ -227,7 +227,7 @@ ui <- dashboardPage(
                                            pickerInput('judges_of_interest', 
                                                        'Judges of Interest', 
                                                        choices = unique(merged.narrow$Judge),
-                                                       selected = unique(merged.narrow$Judge), 
+                                                       selected = judge_options[1:4], 
                                                        options = list(`actions-box` = TRUE), 
                                                        multiple = TRUE),
                                            textInput("crime_descriptions","Crime Description",
@@ -444,10 +444,10 @@ server <- function(input, output) {
              disposition_method %in% input$disposition_methods) %>% 
       dplyr::filter(
              # !is.na(eval(parse(text = input$y.axis))),
-             stringr::str_detect(tolower(statute_description),
-                                       paste(tolower(input$crime_descriptions), collapse = "|") ) |
-             stringr::str_detect(tolower(Chapter_Description),
-                                   paste(tolower(input$crime_descriptions), collapse = "|") )
+             stringr::str_detect((statute_description),
+                                       paste(stringr::str_to_lower(input$crime_descriptions), collapse = "|") ) |
+             stringr::str_detect((Chapter_Description),
+                                   paste(stringr::str_to_lower(input$crime_descriptions), collapse = "|") )
              # stringr::str_detect(tolower(Title_Description),
              #                    paste(tolower(input$title_descriptions), collapse = "|") ),
              # stringr::str_detect(tolower(disposition_method),
@@ -531,9 +531,7 @@ server <- function(input, output) {
     filtered.data() %>%
       ggplot(aes(x = select_judges, 
                  y = Time, 
-                 fill = race, 
-                 #size = Age_at_Arrest, 
-                 shape = gender)) +
+                 fill = race)) +
       geom_jitter(pch = 21, width = 0.3) + 
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.text = element_text(size = 10)) + 
       labs(y=paste("Max", text.y.axis(),"(Years)"), x = "Judges") +

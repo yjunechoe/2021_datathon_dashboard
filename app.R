@@ -206,10 +206,10 @@ ui <- dashboardPage(
                                   fluidRow(
 
                                     column(width = 2,style = "height:800px",
-                                           selectInput("y.axis","Y Axis", 
-                                                       choices = c("Confinement_Time",
-                                                                   "Probation_Time"), 
-                                                       selected = "Confinement_Time"),
+                                           # selectInput("y.axis","Y Axis", 
+                                           #             choices = c("Confinement_Time",
+                                           #                         "Probation_Time"), 
+                                           #             selected = "Confinement_Time"),
                                            pickerInput('judges_of_interest', 
                                                        'Judges of Interest', 
                                                        choices = unique(merged.narrow$Judge),
@@ -428,7 +428,7 @@ server <- function(input, output) {
       #filter based on selection
       dplyr::filter(race %in% input$races,
              max_grade %in% input$max_grade,
-             Type == input$y.axis,
+             #Type == input$y.axis,
              disposition_method %in% input$disposition_methods) %>% 
       dplyr::filter(
              # !is.na(eval(parse(text = input$y.axis))),
@@ -525,7 +525,8 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
             legend.text = element_text(size = 10)) + 
       # labs(y=paste("Max", text.y.axis(),"(Years)"), x = "Judges") +
-      labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
+      # labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
+      labs(y=paste("Max Confinement Time (Years)"), x = "Judges") +
       # guides(fill = guide_legend(override.aes = list(size = 3))) + 
       #ggtitle(paste("Crimes Associated with '",input$crime_descriptions,"'")) +
       scale_x_discrete(labels = scales::wrap_format(20)) + 

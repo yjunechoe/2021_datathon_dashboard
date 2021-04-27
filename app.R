@@ -26,14 +26,14 @@ ui <- dashboardPage(
     )
   ),
   
-  # ## right sidebar ====
-  # controlbar = dashboardControlbar(
-  #   controlbarMenu(
-  #     controlbarItem("Controls",
-  #                    actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
-  #     )
-  #   )
-  # ),
+  ## right sidebar ====
+  controlbar = dashboardControlbar(
+    controlbarMenu(
+      controlbarItem("Controls",
+                     actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
+      )
+    )
+  ),
   
   body = dashboardBody(
     
@@ -117,7 +117,10 @@ ui <- dashboardPage(
           than they decrease them have a positive value, while the opposite is true for judges
           that decrease bail amounts more often. The bar fill indicates the total number of 
           bail changes (both increases and decreases)."
-                                ))
+                                )),
+                              fluidRow(
+                                column(width = 12, reactableOutput("TableOutputBail1"))
+                              )
                      ),
                      ##### bail plot panel 2 ####
                      tabPanel(title = "Net Bail Amount Actions - Compare Selected Judges", 
@@ -143,7 +146,7 @@ ui <- dashboardPage(
                               ### bottom row ####
                               fluidRow(
                                 column(width = 12, 
-                                       reactableOutput("TableOutputBail1")
+                                       reactableOutput("TableOutputBail2")
                                 )
                               )
                      ),
@@ -742,7 +745,7 @@ server <- function(input, output) {
   }, res = 100)
   
   # Debugging button - shinyapps.io asked me to disable this for deployment
-  # observeEvent(input$Debugger, {browser()})
+  observeEvent(input$Debugger, {browser()})
   
   
   #
@@ -776,8 +779,24 @@ server <- function(input, output) {
     reactable(data_offense_filter())
   })
   
-  # Reactable for Bail tab 2
+  # Reactable for Bail tab 1
   output$TableOutputBail1 <- renderReactable({
+    bail_net_change_by_judge %>% 
+      ungroup() %>% 
+      select(Judge = judge, `Number of Actions` = n, net_change) %>% 
+      arrange(-net_change) %>% 
+      reactable(
+        columns = list(
+          net_change = colDef(
+            name = "Cumulative Total of Bail Increases and Decreases",
+            cell = data_bars(., fill_color = c("orange", "purple"))
+          )
+        )
+      ) 
+  })
+  
+  # Reactable for Bail tab 2
+  output$TableOutputBail2 <- renderReactable({
     reactable(dplyr::select(bail_filtered(), -action_type))
   })
   

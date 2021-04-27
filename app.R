@@ -784,6 +784,7 @@ server <- function(input, output) {
     bail_net_change_by_judge %>% 
       ungroup() %>% 
       select(Judge = judge, `Number of Actions` = n, net_change) %>% 
+      filter(if (is.null(input$BailPlot1Output_selected)) { TRUE } else {Judge %in% input$BailPlot1Output_selected}) %>% 
       arrange(-net_change) %>% 
       reactable(
         columns = list(

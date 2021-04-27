@@ -56,34 +56,44 @@ theme_update(
 merged <- readRDS('./data/merged_filt_offenses_shiny.Rds')
 
 
-# Load Alison data
-merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds') %>% 
-  dplyr::mutate(Confinement_Time = max_period_days_Confinement/365) %>% 
+# Load Alison data - note that this processing could be done, then saved before loading
+# Could save a bit of time for loading
+merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds') %>%
+  dplyr::mutate(Confinement_Time = max_period_days_Confinement/365.25,
+                Probation_Time = max_period_days_Probation/365.25,
+                statute_description = stringr::str_to_lower(statute_description),
+                Chapter_Description = stringr::str_to_lower(Chapter_Description)) %>%
   # filter here for Confinement_Time NA - this was a lot of the data and this...
   # dataset is only used to plot Confinement_Time so these are dropped later
-  dplyr::filter(!is.na(Confinement_Time))
+  # dplyr::filter(!is.na(Confinement_Time) | !is.na(Probation_Time)) %>%
+  tidyr::pivot_longer(cols = all_of(c("Confinement_Time", "Probation_Time")), values_to = "Time",names_to = "Type") %>%
+  dplyr::filter(!is.na(Time)) %>%
+  dplyr::select(-min_period_days_Confinement, -min_period_days_Probation,
+                -max_period_days_Confinement, -max_period_days_Probation)
 
 # Load Roy data
 bail_net_change_by_judge <- readRDS('./data/bailnetchangebyjudge.rds')
 
 # Load Kulbir data
 dispo_det <- readRDS('./data/kk_dispo_det.Rds')
+
+# Load Sybil data
+completerecords <- readRDS('./data/new_bail_data.rds') %>% 
+  mutate(month = factor(month, levels = c("Spring","Summer","Fall","Winter")))
+
 # Create some other variables that the app uses: ----
+bail_judge_options <- unique(completerecords$Judge)
 
 options <-
   c(
-    "Judge",
-    "min_grade",
+    #"Judge",
     "max_grade",
     "statute_description",
     "disposition",
     "disposition_method",
-    "sentence_type",
-    "Title_Description",
     "Chapter_Description",
     "gender",
-    "race",
-    "in_select_judges"
+    "race"
   )
 # Display options in order of most common
 judge_options <-

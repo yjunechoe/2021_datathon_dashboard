@@ -149,56 +149,42 @@ ui <- dashboardPage(
                      ),
                      
                      ##### bail plot panel 3 ####
-                     tabPanel(title = "Bail Amount - Seasonal Patterns", 
+                     tabPanel(title = "Bail Amount and Type", 
                               value = "BailPlot3Tab",
-                              fluidRow(style = "height:800px",
-                                column(width = 10, 
-                                       plotOutput("BailPlot3Output", height = "800px")),
+                              
+                              fluidRow(
                                 column(width = 2,
-                                       selectInput('bail_judge3', 'Judge', bail_judge_options),
-                                       checkboxGroupInput('bail_year3', 'Year Range', 
-                                                   sort(unique(completerecords$year)),
-                                                   selected =unique(completerecords$year))
-                                       # actionButton("bail_button", "Plot", class = "btn-success", color = "purple")
-                                       # selectInput('bail_year3', 'Year Range', 
-                                       #             sort(unique(completerecords$year)),
-                                       #             selected =unique(completerecords$year),
-                                       #             multiple = TRUE)
-                                       # selectInput('bail_action3', 'Action Type',
-                                       #             sort(unique(completerecords$action_type_name)),
-                                       #             selected = c("Set","Reinstate","Revoke","Revoke and Forfeit"),
-                                       #             multiple = TRUE),
-                                       # selectInput('bail_race3', 'Race',
-                                       #             sort(unique(completerecords$race)),
-                                       #             selected = unique(completerecords$race),
-                                       #             multiple = TRUE)
-                                       
-                                )
+                                       p("Select a judge and date range. These selections apply to all the visualizations to the right.", align = "center"),
+                                      selectInput('bail_judge3', 'Judge', bail_judge_options),
+                                      checkboxGroupInput('bail_year3', 'Year Range', 
+                                          sort(unique(completerecords$year)),
+                                           selected =unique(completerecords$year)
+                                          )
                                 ),
-                                # hr(),
-                                fluidRow(
-                                  column(width = 12,
-                                         ""
-                                  )),
-                                hr(),
-                                fluidRow(
-                                  column(width = 10, plotOutput("BailPlot3bOutput"))
-                                  
-                                ),
-                                hr(),
-                                fluidRow(
-                                  column(width = 12,
-                                         ""
-                                  ))#,
-                                ### bottom row ####
-                                ## optional
-                                # fluidRow(
-                                #   column(width = 12, 
-                                #          reactableOutput("TableOutputBail3")
-                                #   )
-                                # )
+                                column(width = 10,
+                                tabBox(id = "PlotsTabset", 
+                                       width = 12,
+                                tabPanel(title = "Mean Bail Amount", value="bailsub1",
+                                         fluidRow(
+                                           column(
+                                             width = 12,
+                                                  plotOutput("BailPlot3bOutput"))
+                                         )),
+                                tabPanel(title = "Bail Actions", value="bailsub2",
+                                         fluidRow(
+                                           column(
+                                             width = 12,
+                                             plotOutput("BailPlot3cOutput"))
+                                         )),
+                                tabPanel(title = "Bail by Season", value="bailsub3",
+                                         fluidRow(style = "height:800px",
+                                                  column(
+                                                    width = 12,
+                                          plotOutput("BailPlot3Output", height = "800px"))
+                                         ))
+                                ))
                               )
-                     
+                              )
               )
             )
           )
@@ -298,7 +284,7 @@ ui <- dashboardPage(
                                   ),
                                   fluidRow(
                                        column(width = 12, 
-               "The above plot compares sentencing behavior for a selected judge compared to all other judges. The median values are shown.")
+               p("The above plot compares sentencing behavior for a selected judge compared to all other judges. The median values are shown."))
                                   ),
       hr(),
                                   ### bottom row tab 2 ####
@@ -317,10 +303,10 @@ ui <- dashboardPage(
                                             options = list(`actions-box` = TRUE))
                          ),
                          column(width = 10, plotOutput("SenPlot3Output")),
-                         
+                         hr(),
                        ### bottom row tab 2 ####
                        fluidRow(
-                         column(width = 12)
+                         column(width = 12, p("The above plot examines how for similar offense grade, there was a difference in the sentencing based on the defendant's race. The percentages shown are the percentage of sentences for a given grade and race."))
                        )
               )
                   )
@@ -534,11 +520,13 @@ server <- function(input, output) {
       ggplot(aes(x = select_judges, 
                  y = Time, 
                  fill = race)) +
-      geom_jitter(pch = 21, width = 0.3) + 
-      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.text = element_text(size = 10)) + 
+      geom_jitter(pch = 21, width = 0.3) +
+      # geom_boxplot() + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+            legend.text = element_text(size = 10)) + 
       # labs(y=paste("Max", text.y.axis(),"(Years)"), x = "Judges") +
       labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
-      guides(fill = guide_legend(override.aes = list(size = 3))) + 
+      # guides(fill = guide_legend(override.aes = list(size = 3))) + 
       #ggtitle(paste("Crimes Associated with '",input$crime_descriptions,"'")) +
       scale_x_discrete(labels = scales::wrap_format(20)) + 
       scale_fill_discrete(labels = scales::wrap_format(10)) +
@@ -621,15 +609,15 @@ server <- function(input, output) {
   # Sentence plot by Race tab 3 #####
   output$SenPlot3Output <- renderPlot({
     # Original (denominator is total sentences for given type)
+    # perct <- dispo_race() %>%
+    #   add_count(sentence_type, name = "sentence_ct") %>%
+    #   count(race, grade, sentence_type,sentence_ct, sort = TRUE) %>%
+    #   mutate(pct_sentence = n /sentence_ct)
+    # Suggestion (denominator is total cases of given race/grade)
     perct <- dispo_race() %>%
-      add_count(sentence_type, name = "sentence_ct") %>%
+      add_count(race, grade, name = "sentence_ct") %>%
       count(race, grade, sentence_type,sentence_ct, sort = TRUE) %>%
       mutate(pct_sentence = n /sentence_ct)
-    # Suggestion (denominator is total cases of given race/grade)
-    # perct <- dispo_race() %>% 
-    #   add_count(race, grade, name = "sentence_ct") %>% 
-    #   count(race, grade, sentence_type,sentence_ct, sort = TRUE) %>% 
-    #   mutate(pct_sentence = n /sentence_ct) 
     
     ggplot(perct) +
       aes(x = grade, fill = race, weight = pct_sentence) +
@@ -731,11 +719,27 @@ server <- function(input, output) {
       geom_col(width =0.7, position=position_dodge(width=0.8), color="black") +
       labs(title = paste("Judge:",input$bail_judge3), 
            subtitle = "Municipal Court", 
-           caption = "Mean bail amount for all years judge has been in office grouped by race and action type.", 
+           caption = "Mean bail amount for all years judge has been in office\ngrouped by race and action type.", 
            x = "Action Type", y = "Mean Bail Amount")
   }, res = 100)
 
-  
+  # Bail Plot 3c: ####
+  output$BailPlot3cOutput <- renderPlot({
+    
+    if (nrow(bail_season_filtered())<1)
+      return(NULL)
+    bail_season_filtered() %>%
+      group_by(race, action_type_name) %>%
+      summarise(counts = n()) %>%
+      mutate(race=fct_reorder(race, counts)) %>% 
+      ggplot(aes(x = action_type_name, y = counts, fill = race )) +
+      coord_flip() +
+      geom_col(position="dodge", color="black") +
+      labs(title = paste("Judge:", input$bail_judge3), 
+           subtitle = "Municipal Court", 
+           caption = "Sum of all types of bail actions taken\nfor all years judge has been in office grouped by race.", 
+           x = "Action Type", y = "Count")
+  }, res = 100)
   
   # Debugging button - shinyapps.io asked me to disable this for deployment
   # observeEvent(input$Debugger, {browser()})

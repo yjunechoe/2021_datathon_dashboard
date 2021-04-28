@@ -240,7 +240,7 @@ ui <- dashboardPage(
                                                        selected = unique(as.character(merged.narrow$max_grade)),
                                                        options = list(`actions-box` = TRUE)),
                                            numericInput("nfactors","Number Categories",
-                                                        value = 5, min = 1, max = 10),
+                                                        value = 5, min = 1, max = 6, step = 1),
                                            # selectInput("x.axis","On X Axis",
                                            #             choices = options, 
                                            #             selected = "Chapter_Description"),
@@ -443,7 +443,8 @@ server <- function(input, output) {
       dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
                                              Judge, "Other Judges")) %>%
       dplyr::mutate(select_judges = forcats::fct_lump_n(in_select_judges, n = input$nfactors)) %>% 
-      dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors))
+      dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors)) %>% 
+      dplyr::filter(to.facet != "Other")
   })
   # text.y.axis <- eventReactive(input$sent_button, { input$y.axis})
   
@@ -665,7 +666,7 @@ server <- function(input, output) {
         opts_hover()
       ),
       width_svg = 18,
-      height_svg = 10
+      height_svg = 8
     )
     thematic_on()
     girafe_plot

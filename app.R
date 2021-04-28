@@ -112,11 +112,11 @@ ui <- dashboardPage(
                               ),
                               fluidRow(
                                 column(width = 12,
-                                       "This plot shows the cumulative total of bail increases and decreases by a given judge.
+                                       HTML("This plot shows the cumulative total of bail increases and decreases by a given judge.
           Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
           than they decrease them have a positive value, while the opposite is true for judges
           that decrease bail amounts more often. The bar fill indicates the total number of 
-          bail changes (both increases and decreases)."
+          bail changes (both increases and decreases).<p></p><p></p>", )
                                 )),
                               fluidRow(
                                 column(width = 12, reactableOutput("TableOutputBail1"))
@@ -650,18 +650,22 @@ server <- function(input, output) {
         ) +
         labs(
           title = "Cumulative Total of Bail Increases and Decreases",
-          x = "Judges",
+          x = NULL,
           y = NULL,
           fill = "Total # of Bail Amount Changes"
         ) +
         xlab("Judges") +
-        scale_x_discrete(labels = function(x) stringr::str_trunc(x, width=20)) + 
         theme(
+          legend.position = 0,
+          plot.title = element_text(size = 18),
           plot.caption = element_text(hjust = 0),
-          axis.text.x = element_text(angle=90, hjust=1,vjust=0.5, size = 6)
+          axis.text.x = element_blank(),
+          axis.text.y = element_text(size = 16),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.y = element_line(linetype = 2, color = 'grey')
         ),
       options = list(
-        opts_tooltip(use_fill = TRUE),
+        opts_tooltip(css = "font-size: 2em; padding: 15px; color: white;", use_fill = TRUE),
         opts_selection(),
         opts_hover()
       ),

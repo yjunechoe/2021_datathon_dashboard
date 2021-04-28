@@ -11,7 +11,8 @@ ui <- dashboardPage(
   title = "R-Ladies Datathon 2021",
   skin = "purple",
   # header = dashboardHeader(title = img(src="rladieslogo.png", height = 50, align = "right")),
-  header = dashboardHeader(title = "R-Ladies JAT Datathon 2021",
+  header = dashboardHeader(title = HTML("<img src='rladieslogo.png' width='35px' style='margin: -5px 0px 0px -5px;'>
+                                        R-Ladies JAT Datathon 2021"),
                            titleWidth = 300),
   
   

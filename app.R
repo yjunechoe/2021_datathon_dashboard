@@ -11,7 +11,10 @@ ui <- dashboardPage(
   title = "R-Ladies Datathon 2021",
   skin = "purple",
   # header = dashboardHeader(title = img(src="rladieslogo.png", height = 50, align = "right")),
-  header = dashboardHeader(title = "R-Ladies JAT Datathon 2021",
+  header = dashboardHeader(title = HTML("<a href='https://www.rladiesphilly.org'>
+                                          <img src='rladieslogo.png' width='35px' style='margin: -5px 0px 0px -5px;'>
+                                        </a>
+                                        R-Ladies JAT Datathon 2021"),
                            titleWidth = 300),
   
   
@@ -26,14 +29,14 @@ ui <- dashboardPage(
     )
   ),
   
-  # ## right sidebar ====
-  # controlbar = dashboardControlbar(
-  #   controlbarMenu(
-  #     controlbarItem("Controls",
-  #                    actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
-  #     )
-  #   )
-  # ),
+  ## right sidebar ====
+  controlbar = dashboardControlbar(
+    controlbarMenu(
+      # controlbarItem("Controls",
+      #                actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
+      # )
+    )
+  ),
   
   body = dashboardBody(
     
@@ -112,12 +115,15 @@ ui <- dashboardPage(
                               ),
                               fluidRow(
                                 column(width = 12,
-                                       "This plot shows the cumulative total of bail increases and decreases by a given judge.
+                                       HTML("This plot shows the cumulative total of bail increases and decreases by a given judge.
           Increases equal 1 while decreases equal -1. Judges that increase bail amounts more often
           than they decrease them have a positive value, while the opposite is true for judges
           that decrease bail amounts more often. The bar fill indicates the total number of 
-          bail changes (both increases and decreases)."
-                                ))
+          bail changes (both increases and decreases).<p></p><p></p>", )
+                                )),
+                              fluidRow(
+                                column(width = 12, reactableOutput("TableOutputBail1"))
+                              )
                      ),
                      ##### bail plot panel 2 ####
                      tabPanel(title = "Net Bail Amount Actions - Compare Selected Judges", 
@@ -143,7 +149,7 @@ ui <- dashboardPage(
                               ### bottom row ####
                               fluidRow(
                                 column(width = 12, 
-                                       reactableOutput("TableOutputBail1")
+                                       reactableOutput("TableOutputBail2")
                                 )
                               )
                      ),
@@ -316,16 +322,7 @@ ui <- dashboardPage(
       
       
       # About tab ----
-      tabItem(tabName = "AboutTab",
-              fluidPage(
-                fluidRow(
-                  column(width = 2),
-                  column(width = 10,
-                         "This dashboard was created as part of the R-Ladies Philly 2021 Datathon.",
-                         "To navigate the dashboard, choose a selection (Bail, Sentences) and then view an analysis in each tab of the corresponding pages.")
-                )
-              )
-      )
+      tabItem(tabName = "AboutTab", includeMarkdown("About.Rmd"))
       
     )
     
@@ -648,18 +645,22 @@ server <- function(input, output) {
         ) +
         labs(
           title = "Cumulative Total of Bail Increases and Decreases",
-          x = "Judges",
+          x = NULL,
           y = NULL,
           fill = "Total # of Bail Amount Changes"
         ) +
         xlab("Judges") +
-        scale_x_discrete(labels = function(x) stringr::str_trunc(x, width=20)) + 
         theme(
+          legend.position = 0,
+          plot.title = element_text(size = 18),
           plot.caption = element_text(hjust = 0),
-          axis.text.x = element_text(angle=90, hjust=1,vjust=0.5, size = 6)
+          axis.text.x = element_blank(),
+          axis.text.y = element_text(size = 16),
+          axis.ticks.x = element_blank(),
+          panel.grid.major.y = element_line(linetype = 2, color = 'grey')
         ),
       options = list(
-        opts_tooltip(use_fill = TRUE),
+        opts_tooltip(css = "font-size: 2em; padding: 15px; color: white;", use_fill = TRUE),
         opts_selection(),
         opts_hover()
       ),
@@ -777,8 +778,25 @@ server <- function(input, output) {
     reactable(data_offense_filter())
   })
   
-  # Reactable for Bail tab 2
+  # Reactable for Bail tab 1
   output$TableOutputBail1 <- renderReactable({
+    bail_net_change_by_judge %>% 
+      ungroup() %>% 
+      select(Judge = judge, `Number of Actions` = n, net_change) %>% 
+      filter(if (is.null(input$BailPlot1Output_selected)) { TRUE } else {Judge %in% input$BailPlot1Output_selected}) %>% 
+      arrange(-net_change) %>% 
+      reactable(
+        columns = list(
+          net_change = colDef(
+            name = "Cumulative Total of Bail Increases and Decreases",
+            cell = data_bars(., fill_color = c("orange", "purple"))
+          )
+        )
+      ) 
+  })
+  
+  # Reactable for Bail tab 2
+  output$TableOutputBail2 <- renderReactable({
     reactable(dplyr::select(bail_filtered(), -action_type))
   })
   

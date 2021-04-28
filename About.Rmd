@@ -3,7 +3,7 @@ title: "About"
 output: html_document
 ---
 
-## R Markdown
+## Welcome
 
 This dashboard was created as part of the R-Ladies Philly 2021 Datathon.
 

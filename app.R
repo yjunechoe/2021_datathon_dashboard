@@ -322,16 +322,7 @@ ui <- dashboardPage(
       
       
       # About tab ----
-      tabItem(tabName = "AboutTab",
-              fluidPage(
-                fluidRow(
-                  column(width = 2),
-                  column(width = 10,
-                         "This dashboard was created as part of the R-Ladies Philly 2021 Datathon.",
-                         "To navigate the dashboard, choose a selection (Bail, Sentences) and then view an analysis in each tab of the corresponding pages.")
-                )
-              )
-      )
+      tabItem(tabName = "AboutTab", includeMarkdown("about.Rmd"))
       
     )
     

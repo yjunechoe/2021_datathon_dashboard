@@ -3,3 +3,9 @@
 .main-header .logo {
   font-family: "Yusei Magic";
 }
+
+div#shiny-tab-AboutTab {
+  background-color: ghostwhite;
+  border-radius: 20px;
+  padding: 10px 20px 20px 20px;
+}

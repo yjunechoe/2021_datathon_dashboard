@@ -72,7 +72,8 @@ merged.narrow <- readRDS('./data/Docket_Offenses_Merged_Narrowed.Rds') %>%
   tidyr::pivot_longer(cols = all_of(c("Confinement_Time", "Probation_Time")), values_to = "Time",names_to = "Type") %>%
   dplyr::filter(!is.na(Time)) %>%
   dplyr::select(-min_period_days_Confinement, -min_period_days_Probation,
-                -max_period_days_Confinement, -max_period_days_Probation)
+                -max_period_days_Confinement, -max_period_days_Probation) %>% 
+  dplyr::filter(Type == "Confinement_Time")
 
 # Load Roy data
 bail_net_change_by_judge <- readRDS('./data/bailnetchangebyjudge.rds')

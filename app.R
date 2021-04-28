@@ -32,9 +32,9 @@ ui <- dashboardPage(
   ## right sidebar ====
   controlbar = dashboardControlbar(
     controlbarMenu(
-      controlbarItem("Controls",
-                     actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
-      )
+      # controlbarItem("Controls",
+      #                actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
+      # )
     )
   ),
   
@@ -212,10 +212,10 @@ ui <- dashboardPage(
                                   fluidRow(
 
                                     column(width = 2,style = "height:800px",
-                                           selectInput("y.axis","Y Axis", 
-                                                       choices = c("Confinement_Time",
-                                                                   "Probation_Time"), 
-                                                       selected = "Confinement_Time"),
+                                           # selectInput("y.axis","Y Axis", 
+                                           #             choices = c("Confinement_Time",
+                                           #                         "Probation_Time"), 
+                                           #             selected = "Confinement_Time"),
                                            pickerInput('judges_of_interest', 
                                                        'Judges of Interest', 
                                                        choices = unique(merged.narrow$Judge),
@@ -240,7 +240,7 @@ ui <- dashboardPage(
                                                        selected = unique(as.character(merged.narrow$max_grade)),
                                                        options = list(`actions-box` = TRUE)),
                                            numericInput("nfactors","Number Categories",
-                                                        value = 5, min = 1, max = 10),
+                                                        value = 5, min = 1, max = 6, step = 1),
                                            # selectInput("x.axis","On X Axis",
                                            #             choices = options, 
                                            #             selected = "Chapter_Description"),
@@ -322,7 +322,7 @@ ui <- dashboardPage(
       
       
       # About tab ----
-      tabItem(tabName = "AboutTab", includeMarkdown("about.Rmd"))
+      tabItem(tabName = "AboutTab", includeMarkdown("About.Rmd"))
       
     )
     
@@ -425,7 +425,7 @@ server <- function(input, output) {
       #filter based on selection
       dplyr::filter(race %in% input$races,
              max_grade %in% input$max_grade,
-             Type == input$y.axis,
+             #Type == input$y.axis,
              disposition_method %in% input$disposition_methods) %>% 
       dplyr::filter(
              # !is.na(eval(parse(text = input$y.axis))),
@@ -443,7 +443,8 @@ server <- function(input, output) {
       dplyr::mutate(in_select_judges = ifelse(Judge %in% input$judges_of_interest, 
                                              Judge, "Other Judges")) %>%
       dplyr::mutate(select_judges = forcats::fct_lump_n(in_select_judges, n = input$nfactors)) %>% 
-      dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors))
+      dplyr::mutate(to.facet = forcats::fct_lump_n(eval(parse(text = input$facet)), n = input$nfactors)) %>% 
+      dplyr::filter(to.facet != "Other")
   })
   # text.y.axis <- eventReactive(input$sent_button, { input$y.axis})
   
@@ -522,7 +523,8 @@ server <- function(input, output) {
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
             legend.text = element_text(size = 10)) + 
       # labs(y=paste("Max", text.y.axis(),"(Years)"), x = "Judges") +
-      labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
+      # labs(y=paste("Max", input$y.axis,"(Years)"), x = "Judges") +
+      labs(y=paste("Max Confinement Time (Years)"), x = "Judges") +
       # guides(fill = guide_legend(override.aes = list(size = 3))) + 
       #ggtitle(paste("Crimes Associated with '",input$crime_descriptions,"'")) +
       scale_x_discrete(labels = scales::wrap_format(20)) + 
@@ -664,7 +666,7 @@ server <- function(input, output) {
         opts_hover()
       ),
       width_svg = 18,
-      height_svg = 10
+      height_svg = 8
     )
     thematic_on()
     girafe_plot
@@ -743,7 +745,7 @@ server <- function(input, output) {
   }, res = 100)
   
   # Debugging button - shinyapps.io asked me to disable this for deployment
-  observeEvent(input$Debugger, {browser()})
+  # observeEvent(input$Debugger, {browser()})
   
   
   #

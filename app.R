@@ -32,9 +32,9 @@ ui <- dashboardPage(
   ## right sidebar ====
   controlbar = dashboardControlbar(
     controlbarMenu(
-      controlbarItem("Controls",
-                     actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
-      )
+      # controlbarItem("Controls",
+      #                actionBttn("Debugger", "Debug", block = TRUE, color = "danger")
+      # )
     )
   ),
   
@@ -322,7 +322,7 @@ ui <- dashboardPage(
       
       
       # About tab ----
-      tabItem(tabName = "AboutTab", includeMarkdown("about.Rmd"))
+      tabItem(tabName = "AboutTab", includeMarkdown("About.Rmd"))
       
     )
     
@@ -743,7 +743,7 @@ server <- function(input, output) {
   }, res = 100)
   
   # Debugging button - shinyapps.io asked me to disable this for deployment
-  observeEvent(input$Debugger, {browser()})
+  # observeEvent(input$Debugger, {browser()})
   
   
   #
